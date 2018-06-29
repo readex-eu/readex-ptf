@@ -1,0 +1,22 @@
+Scenario ID; Flags;OPT;Time;
+0; -O1 ;-O1 ;0.000183969;
+1; -O2 ;-O2 ;0.000119428;
+2; -O3 ;-O3 ;0.000188084;
+
+
+Optimum Scenario: 1
+
+Compiler Flags tested:
+Scenario 0 flags: "-O1 "
+Scenario 1 flags: "-O2 "
+Scenario 2 flags: "-O3 "
+
+
+All Results:
+Scenario	|  Severity
+0		|  0.000183969
+1		|  0.000119428
+2		|  0.000188084
+
+------------------------
+

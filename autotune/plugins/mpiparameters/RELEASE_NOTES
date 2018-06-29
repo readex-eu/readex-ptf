@@ -1,0 +1,9 @@
+Version 1.1
+* Support for Intel MPI
+* Supports genetic (GDE3) search strategy
+* Supports automatic estimation of eager-limit + buffer-mem parameters
+
+Version 1.0
+* Support for IBM MPI
+* Exhaustive search strategy
+

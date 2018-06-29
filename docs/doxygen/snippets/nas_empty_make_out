@@ -1,0 +1,24 @@
+   ===========================================
+   =      NAS PARALLEL BENCHMARKS 3.3        =
+   =      MPI+OpenMP Multi-Zone Versions     =
+   =      F77                                =
+   ===========================================
+
+
+   To make a NAS multi-zone benchmark type 
+
+         make <benchmark-name> CLASS=<class> NPROCS=<nprocs>
+
+   where <benchmark-name> is "bt-mz", "lu-mz", or "sp-mz"
+         <class>          is "S", "W", "A" through "F"
+         <nprocs>         is number of processes
+
+   To make a set of benchmarks, create the file config/suite.def
+   according to the instructions in config/suite.def.template and type
+
+         make suite
+
+ ***************************************************************
+ * Remember to edit the file config/make.def for site specific *
+ * information as described in the README file                 *
+ ***************************************************************

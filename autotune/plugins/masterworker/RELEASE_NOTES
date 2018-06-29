@@ -1,0 +1,6 @@
+Version 1.1
+* Model based estimation of Partition Factor and Number of Workers for instrumented applications.
+* Tuning number of workers using exhaustive search for uninstrumented applications. 
+
+Version 1.0
+* Tuning number of workers using exhaustive search. 

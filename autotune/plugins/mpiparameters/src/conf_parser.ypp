@@ -1,0 +1,485 @@
+%{
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <cstdio>
+#include <vector>
+#include <algorithm>
+#include <sstream>
+#include <string>
+#include <cstring>
+#include <cstdlib>
+#include <iostream>
+#include <typeinfo>
+
+//#include "../include/MPIParametersPlugin.h"
+#include "MPIParametersPlugin.h"
+//using namespace std;
+
+extern "C" int yylex();
+extern "C" int yyparse();
+extern "C" FILE *yyin;
+
+stringstream strs;
+
+vector<MPIParameterTP> tps;
+mpiImplementationName MPIName = GENERIC;
+
+TaskAffinity TA;
+
+/* Main methods */
+void yyerror(const char *s);
+void initializeIntelMPI();
+void initializeIBMMPI();
+void initializeOPENMPI();
+void initializeDefault();
+void initAutoEagerLimit();
+void pushValue(string);
+void setMPIType(mpiType, string);
+long getValueInBytes(string);
+bool hasSuffix(string);
+void treatInterval(string, string, string);
+
+%}
+
+%union {
+	int 	ival;
+	float 	fval;
+	char   *sval;
+	bool	bval;
+	long 	lval;
+}
+	
+%token MPIPO_BEGIN 
+%token MPI_OPENMPI MPI_INTEL
+
+%token MPI_IBM
+%token MP_USE_BULK_XFER MP_BULK_MIN_MSG_SIZE MP_BUFFER_MEM MP_EAGER_LIMIT 
+%token MP_CC_SCRATCH_BUF MP_SINGLE_THREAD MP_WAIT_MODE MP_POLLING_INTERVAL
+%token MP_CSS_INTERRUPT MP_HINTS_FILTERED MP_MSG_ENVELOPE_BUF MP_RETRANSMIT_INTERVAL
+%token MP_THREAD_STACKSIZE MP_ACK_THRESH MP_IO_BUFFER_SIZE MP_IO_ERRLOG
+%token MP_REXMIT_BUF_SIZE MP_REXMIT_BUF_CNT MP_PE_AFFINITY MP_TASK_AFFINITY
+%token CPU CORE MCM DISABLE
+
+%token VARS_EXP
+%token EXP_SEARCH EXP_IND_KEEP EXP_SAMP_COUNT EXP_GDE3POPSIZE EXP_AUTO_EAGER_LIMIT
+%token ENDVALS INTERVALSEP VALSEP
+%token INCSUM INCMUL VALUESBEGIN
+
+
+%token ENDL MPIPO_END
+%token COMMA COLON
+
+%token <ival> INT
+%token <fval> FLOAT 
+%token <sval> STRING
+%token <sval> SVAL 
+%token <ival> IVAL
+%token <bval> BVAL
+%token <lval> LVAL
+
+%%
+mpipo_conf: MPIPO_BEGIN { tps.clear(); } header
+	;
+	
+header: MPI_IBM   { initializeIBMMPI(); 	} ibm_list footer		;
+	| MPI_INTEL	  { initializeIntelMPI();	} intel_body footer		;
+	| MPI_OPENMPI { initializeOPENMPI(); 	} openmpi_body footer 	;
+	| VARS_EXP 	  { initializeDefault();	} export_body footer	;
+	;
+
+/* ============================================================================================================ */
+/*										- EXPORTING PARAMETERS IMPLEMENTATION-									*/
+/* ============================================================================================================	*/
+
+export_body: body_lines		{ /*cout << "There is no type SPECIFIED" << endl;*/ }
+	;
+
+ibm_list: ibm_statement ibm_list
+    | ibm_statement
+    ;
+
+body_lines:
+	  body_line body_lines
+	| body_line
+	;
+
+exp_section:
+	EXP_SEARCH 								{ 	//cout << "test 1 ok " << endl ;
+												MPIParameterTP tp;
+												tp.MPIType = SEARCHALG;
+												tps.push_back(tp); } values;
+
+	| EXP_IND_KEEP 							{	//cout << "test 2 ok" << endl;
+												MPIParameterTP tp;
+		     	 	 	 	 	 	 	 	 	tp.MPIType = INDKEEP;
+		     	 	 	 	 	 	 	 	 	tps.push_back(tp);} values ;
+
+	| EXP_GDE3POPSIZE 						{	//cout << "test 3 ok" << endl;
+												MPIParameterTP tp;
+		     	 	 	 	 	 	 	 	 	tp.MPIType = GDE3POPSZ;
+		     	 	 	 	 	 	 	 	 	tps.push_back(tp);} values ;
+
+	| EXP_SAMP_COUNT 						{	//cout << "test 4 ok" << endl;
+												MPIParameterTP tp;
+												tp.MPIType = SAMPCOUNT;
+												tps.push_back(tp);} values ;
+
+	;
+
+body_line:
+	STRING INTERVALSEP STRING VALUESBEGIN 	{ 	//cout << "Linea 163" << endl;
+												MPIParameterTP tp;
+												tp.MPIType = unknown;
+												tp.env_var_name = $3;
+												tps.push_back(tp); } values ;
+
+	| STRING VALUESBEGIN 					{	//cout << "Linea 168" << endl;
+												MPIParameterTP tp;
+												tp.MPIType = unknown;
+												tp.env_var_name = $1;
+												tps.push_back(tp);}values ;
+
+	| STRING 								{	//cout << "Linea 173" << endl;
+												MPIParameterTP tp;
+												tp.MPIType = unknown;
+												tp.env_var_name = $1;
+												tps.push_back(tp);} values ;
+	| exp_section							;
+
+values:
+	INT INTERVALSEP INT INTERVALSEP INT ENDVALS { 	//cout << "Linea 181" << endl;
+													tps.back().start=$1;
+													tps.back().step=$3;
+													tps.back().end=$5;
+													tps.back().ranged=true; }
+
+	| INT INTERVALSEP INCSUM INT INTERVALSEP INT ENDVALS { 	//cout << "Linea 186" << endl;
+															tps.back().start=$1;
+															tps.back().step=$4;
+															tps.back().end=$6;
+															tps.back().ranged=true; }
+
+	| INT INTERVALSEP INCMUL INT INTERVALSEP INT ENDVALS { 	//cout << "Linea 191" << endl;
+															tps.back().ranged=false;
+															int count = 0;
+															for (int i = $1; i <= $6; i *= $4){
+																strs << i;
+																tps.back().values.push_back(strs.str());
+																strs.str(std::string());
+																strs.clear();
+																count++;
+															}
+															tps.back().start=0;
+															tps.back().step=1;
+															tps.back().end=count-1; }
+
+	| STRING  						{ //cout << "Linea 203" << endl;
+									tps.back().values.push_back($1);
+									tps.back().values.push_back(strs.str());}
+
+	| other_values STRING ENDVALS 	{ //cout << "Linea 208" << endl;
+									tps.back().values.push_back($2);
+									tps.back().start=0;
+									tps.back().step=1;
+									tps.back().end=tps.back().values.size()-1;}
+	| STRING ENDVALS 				{ //cout << "Linea 209" << endl;
+									tps.back().values.push_back($1);
+									tps.back().start=0;
+									tps.back().step=1;
+									tps.back().end=tps.back().values.size()-1;}
+
+	| other_values INT ENDVALS 		{ //cout << "Linea 219" << endl;
+									strs << $2;
+									tps.back().values.push_back(strs.str());
+									strs.str(std::string());
+									strs.clear();
+									tps.back().start=0;
+									tps.back().step=1;
+									tps.back().end=tps.back().values.size()-1;}
+
+	| INT ENDVALS 					{ //cout << "Linea 228" << endl;
+									strs << $1;
+									tps.back().values.push_back(strs.str());
+									strs.str(std::string());
+									strs.clear();
+									tps.back().start=0;
+									tps.back().step=1;
+									tps.back().end=tps.back().values.size()-1;}
+	;
+
+other_values:
+	other_values STRING VALSEP 		{ cout << "Linea 241" << endl; tps.back().values.push_back($2); 	}
+	| STRING VALSEP 				{ cout << "Linea 242" << endl; tps.back().values.push_back($1);	}
+	| STRING 						{ cout << "Linea 243" << endl; tps.back().values.push_back($1); }
+	| other_values INT VALSEP 		{ cout << "Linea 244" << endl; strs << $2; tps.back().values.push_back(strs.str()); strs.str(std::string());strs.clear(); }
+	| INT VALSEP 					{ cout << "Linea 245" << endl; strs << $1; tps.back().values.push_back(strs.str()); strs.str(std::string());strs.clear(); }
+	;
+
+/* ============================================================================================================ */
+/*										- INTEL MPI PARAMETERS IMPLEMENTATION-									*/
+/* ============================================================================================================	*/
+
+intel_body: body_lines							{ cout << "[INFO]: Intel body not implemented yet" << endl; }
+	;
+
+openmpi_body: body_lines						{ cout << "[INFO]: Openmpi body not implemented yet" << endl; }
+	;
+
+/* ============================================================================================================ */
+/*										- IBM MPI PARAMETERS IMPLEMENTATION-									*/
+/* ============================================================================================================	*/
+
+
+ibm_statement:MP_TASK_AFFINITY {setMPIType((mpiType)TASK_AFFINITY, "task_affinity");}	 ibm_TaskAffinity;
+	| MP_PE_AFFINITY 		{ setMPIType((mpiType)PE_AFFINITY, "pe_affinity"); 			} 		ibm_getYesNo;
+	| MP_REXMIT_BUF_CNT 	{ setMPIType((mpiType)REXMIT_BUF_CNT, "rexmit_buf_cnt");	} 		ibm_getValues;
+	| MP_REXMIT_BUF_SIZE 	{ setMPIType((mpiType)REXMIT_BUF_SIZE, "rexmit_buf_size");	} 		ibm_getValues;
+	| MP_IO_ERRLOG 			{ setMPIType((mpiType)IO_ERRLOG, "io_errlog"); 				}		ibm_getYesNo;
+	| MP_IO_BUFFER_SIZE 	{ setMPIType((mpiType)IO_BUFFER_SIZE, "io_buffer_size"); 	}		ibm_getValues;
+	| MP_ACK_THRESH 		{ setMPIType((mpiType)ACK_THRESH, "ack_thresh"); 			}		ibm_getValues;
+	| MP_THREAD_STACKSIZE   { setMPIType((mpiType)THREAD_STACKSIZE, "thread_stacksize");}		ibm_getValues;
+	| MP_RETRANSMIT_INTERVAL{ setMPIType((mpiType)RETRANSMIT_INTERVAL, "retransmit_interval");}	ibm_getValues;
+	| MP_MSG_ENVELOPE_BUF 	{ setMPIType((mpiType)MSG_ENVELOPE_BUF, "msg_envelope_buf");}		ibm_getValues;
+	| MP_HINTS_FILTERED 	{ setMPIType((mpiType)HINTS_FILTERED, "hints_filtered");	} 		ibm_getYesNo;
+	| MP_CSS_INTERRUPT 		{ setMPIType((mpiType)CSS_INTERRUPT, "css_interrupt"); 		}		ibm_getYesNo;
+	| MP_POLLING_INTERVAL 	{ setMPIType((mpiType)POLLING_INTERVAL, "polling_interval"); 	}		ibm_getValues;
+	| MP_WAIT_MODE 			{ setMPIType((mpiType)WAIT_MODE, "wait_mode"); 				} 		ibm_WaitMode;
+	| MP_SINGLE_THREAD 		{ setMPIType((mpiType)SINGLE_THREAD, "single_thread"); 		}		ibm_getYesNo;
+	| MP_CC_SCRATCH_BUF 	{ setMPIType((mpiType)CC_SCRATCH_BUF, "cc_scratch_buf"); 	} 		ibm_getYesNo;
+	| MP_EAGER_LIMIT 		{ setMPIType((mpiType)EAGER_LIMIT, "eager_limit"); 			} 		ibm_getValues;
+	| MP_BUFFER_MEM 		{ setMPIType((mpiType)BUFFER_MEM, "buffer_mem"); 			} 		ibm_getValues;
+	| MP_BULK_MIN_MSG_SIZE 	{ setMPIType((mpiType)BULK_MIN_MSG_SIZE, "bulk_min_msg_size"); }  	ibm_getValues;
+	| MP_USE_BULK_XFER 		{ setMPIType((mpiType)USE_BULK_XFER, "use_bulk_xfer"); 		} 		ibm_getYesNo;
+	| EXP_AUTO_EAGER_LIMIT 	{ initAutoEagerLimit(); } 											;
+	| body_line								;
+	;
+
+	/* ============================================================================================================ */
+	/*										-	PINNING IBM MPI PARAMETERS	-										*/
+	/* ============================================================================================================ */
+
+	ibm_TaskAffinity: ibm_TaskAffinityVal {setMPIType((mpiType)TASK_AFFINITY, "task_affinity");} COMMA ibm_TaskAffinity
+		| ibm_TaskAffinityVal
+		;
+
+	ibm_TaskAffinityVal: DISABLE			{ tps.back().taskAffinity.enabled = false; 	}
+		| CORE COLON IVAL					{ tps.back().taskAffinity.core 	= true; tps.back().taskAffinity.nCore = $3; }
+		| CPU COLON IVAL					{ tps.back().taskAffinity.cpu 	= true; tps.back().taskAffinity.nCpu = $3; }
+		| CORE 								{ tps.back().taskAffinity.core 	= true; tps.back().taskAffinity.nCore = 1; }
+		| CPU								{ tps.back().taskAffinity.cpu 	= true; tps.back().taskAffinity.nCpu = 1; }
+		| MCM COLON							{ tps.back().taskAffinity.mcm 	= true;  	} ibm_mcmList ;
+		| MCM								{ tps.back().taskAffinity.mcm 	= true;		}
+		;
+
+	ibm_mcmList: ibm_mcmValue ibm_mcmList
+		| ibm_mcmValue
+		;
+
+	ibm_mcmValue: IVAL						{ tps.back().taskAffinity.mcmVals.push_back($1); /*cout << (tps.back().taskAffinity.mcmVals[2] == 3);*/ }
+		| COMMA								;
+		| COMMA ibm_TaskAffinityVal			;
+		;
+
+	ibm_WaitMode: SVAL COMMA ibm_WaitMode	{ pushValue($1); }
+		| SVAL								{ pushValue($1); }
+		;
+
+	ibm_getValues: ibm_value ibm_getValues
+		| ibm_value
+		;
+
+	ibm_value: SVAL COLON SVAL COLON SVAL 	{ treatInterval($1,$3,$5); cout << " 'SVAL COLON SVAL COLON SVAL' ";	}
+		| SVAL COLON SVAL 					{ treatInterval($1,$3,"NONE"); cout << " 'SVAL COLON SVAL' "; }
+		| SVAL 								{ pushValue($1);cout << " SVAL ";}
+		| COMMA 							;
+		| ENDLS								;
+
+	ibm_getYesNo: SVAL COMMA SVAL			{ pushValue($1); pushValue($3); }
+		| SVAL								{ pushValue($1); }
+		;
+
+/* ============================================================================================================ */
+/* ============================================================================================================ */
+
+ENDLS: ENDLS ENDL
+	| ENDL 
+	;	
+
+footer: MPIPO_END ENDLS
+	| MPIPO_END
+	;
+
+%%
+
+extern int yy_flex_debug;
+vector<MPIParameterTP> getTuningParameters(const char *filename, mpiImplementationName &MPItype) {
+	// open a file handle to a particular file:
+	printf("Opening file: %s\n", filename);
+	FILE *myfile = fopen(filename, "r");
+	// make sure it's valid:
+	if (!myfile) {
+		cout << "I can't open file!" << endl;
+		return tps;
+	}
+	// set lex to read from it instead of defaulting to STDIN:
+	yyin = myfile;
+	
+	// parse through the input until there is no more:
+	do {
+		yyparse();
+	} while (!feof(yyin));
+	fclose (myfile);
+
+	MPItype = MPIName;
+	return tps;
+}
+
+void yyerror(const char *s) {
+	cout << "EEK, parse error!  Message: " << s << endl;
+	exit(-1);
+}
+
+/* ============================================================================================================ */ 
+/*   								- Implementation of the functions -  										*/
+/* ============================================================================================================ */   
+
+void initializeDefault() {
+	MPIName = GENERIC; tps.clear();
+}
+
+/* ============================================================================================================ */
+/*   										 - MPI INTEL functions -  											*/
+/* ============================================================================================================ */
+void initializeIntelMPI() {
+	MPIName = INTEL; tps.clear();
+}
+
+/* ============================================================================================================ */
+/*   										 - OPENMPI functions -  											*/
+/* ============================================================================================================ */
+
+
+void initializeOPENMPI() {
+	MPIName = OPENMPI;
+	tps.clear();
+}
+
+/* ============================================================================================================ */
+/*   										 - MPI IBM functions -  											*/
+/* ============================================================================================================ */
+
+void treatInterval(string strStart, string strEnd, string strStep) {
+
+	//cout << " The values are: " << strStart << " " << strEnd << " " << strStep << endl;
+	long start;
+	long end;
+	long step = 1; // Default step = 1
+
+	start = getValueInBytes(strStart);
+	end = getValueInBytes(strEnd);
+	if (strStep != "NONE")
+		step = getValueInBytes(strStep);
+
+	tps.back().start = start;
+	tps.back().step = step;
+	tps.back().end = end;
+	tps.back().ranged = true;
+
+	//cout << "The stored values are: " << tps.back().start << " " << tps.back().end << " " << tps.back().step << endl;
+
+}
+
+bool hasSuffix(string value) {
+	int lastElement = value.length() - 1;
+	return (isdigit(value[lastElement]) ? false : true);
+}
+
+long getValueInBytes(string strValue) {
+
+	long valMultiply = 1;
+	int lastElement = strValue.length() - 1;
+	int intValue;
+	long finalValue;
+	string letter;
+	const char* aux;
+
+	if (hasSuffix(strValue)) {
+		letter = strValue[lastElement];
+		std::transform(letter.begin(), letter.end(), letter.begin(), ::toupper);
+
+		// Finally we erase the letter since we don't need it any more
+		strValue = strValue.substr(0, strValue.size() - 1);
+
+		if (letter == "K")		valMultiply = 1024;
+		else if (letter == "M")	valMultiply = 1024*1024;
+		else if (letter == "G")	valMultiply = 1024*1024*1024;
+	}
+	aux = strValue.c_str();
+	intValue = atoi(aux);
+	finalValue = intValue * valMultiply;
+
+	//cout << "The final value to store is: " << finalValue << endl << endl;
+
+	return finalValue;
+}
+
+void pushValue(string val) {
+
+	std::transform(val.begin(), val.end(), val.begin(), ::tolower);
+
+	if (val == "yes" || val == "no"
+			|| val == "poll" || val == "nopoll"
+					|| val == "sleep" || val == "yield") {
+		strs << val;
+	} else {
+		long valor;
+		valor = getValueInBytes(val);
+		strs << valor;
+	}
+
+	tps.back().values.push_back(strs.str());
+	tps.back().start = 0;
+	tps.back().step = 1;
+	tps.back().end = tps.back().values.size() - 1;
+
+//	cout << "The value that has been pushed is: " << tps.back().values[tps.back().end] << endl;
+//	cout << "El número de valores que hay ahora es:  " << tps.back().end << endl << endl;
+
+	strs.str(std::string());
+	strs.clear();
+}
+
+void setMPIType(mpiType val, string varName) {
+
+	// First of all we make the varName be in lower case
+	std::transform(varName.begin(), varName.end(), varName.begin(), ::tolower);
+
+	MPIParameterTP tp;
+	tp.MPIType = val;
+	tp.env_var_name = varName;
+	tps.push_back(tp);
+}
+
+void initializeIBMMPI() {
+	MPIName = IBM; tps.clear();
+}
+
+void initAutoEagerLimit() {
+	MPIParameterTP tp;
+	tp.MPIType = AUTO_EAGER_LIMIT;
+	tps.push_back(tp);
+}
+
+
+
+
+
+
+
+
+
+
+
+

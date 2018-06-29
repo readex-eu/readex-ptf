@@ -1,0 +1,9 @@
+# Set this to your installation location of Periscope
+setenv PERISCOPE_ROOT @prefix@
+
+set path=($PERISCOPE_ROOT/bin $path)
+setenv LD_LIBRARY_PATH $PERISCOPE_ROOT/lib:$LD_LIBRARY_PATH
+
+# Specify the required linking info for your papi installation
+#setenv PAPI_ROOT /opt/papi-4.0.0
+#setenv PAPI_SHLIB "-L$PAPI_ROOT/lib/ -lpapi -lpfm"

@@ -1,0 +1,35 @@
+/** \mainpage Periscope Performance Analysis Toolkit
+ 
+	\tableofcontents
+
+  \section intro_sec Introduction
+ 
+  This is the introduction.
+ 
+  \section install_sec Installation
+ 
+  \subsection step1 Step 1: Getting the code
+	- Get account\n
+		You should get an account to be able to access out CVS server.
+	- CVS setup
+	- Checkout: \e cvs \e checkout \e psc
+
+  \subsection step2 Step 2: Compiling
+	- Environment setup
+	- Makefile ..
+	- Build
+
+  \subsection step3 Step 3: Instrumenting the code
+  \subsection stepx Step x: Something else
+   
+  etc...
+ */
+
+
+/** 
+ *  \brief A Property class example.
+ *
+ *  This is just an example how a property should look like.
+ *
+ *  \example PropertyDefinitionExample.cc
+ */

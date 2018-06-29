@@ -1,0 +1,37 @@
+####################################################
+#
+# This file tracks changes of the CFS Plugin between
+# release candidates (RCs). It is intended to be 
+# used in the testing process.
+#
+# Please follow the given format and provide the date,
+# the tag name, and the list of changes.
+###################################################
+
+
+2014/07/16 <<tag not known>>
+* added Periscope profiling support
+* updated the advice file with execution time as results
+* fixed documentation issues from ICHEC
+* added CSV output file
+* added routine support in configuration file
+
+
+2014/04/09 <<no new tag yet>>
+* documentation fixes for the compiler configuration and instrumented application
+* fixed missing cfs_config.cfg.default and cfs_ifort.cfg files
+* fixed "make selective" approach to check for profile files only if selective files list is missing from the configuration file
+* removed limitation that the compiler specification has to be in the first line of the configuration file.
+
+
+2014/043/02 compilerflags_bugfix_1_ICHEC_open_issues_partially_fixed
+* added this logfile
+* fixed documentation
+* added new section to User's Guide: "Limitations and Known Issues"
+* fixed unnecessary error messages for make_selective
+* fixed problem with unknown compiler flag 0
+
+
+2014/02/27 compilerflags_feature_0_pilot_release_with_ICHEC
+* initial release candidate
+

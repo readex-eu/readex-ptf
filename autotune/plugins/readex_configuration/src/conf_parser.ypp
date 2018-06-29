@@ -1,0 +1,187 @@
+%{
+#include <cstdio>
+#include <vector>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
+#include <iostream>
+#include <sstream>
+#include "readex_configuration_tuning.h"
+
+//#include "lex.h"
+
+using namespace std;
+
+//#include "y.tab.h"  // to get the token types that we return
+
+// stuff from flex that bison needs to know about:
+extern "C" int yylex();
+extern "C" int yyparse();
+extern "C" FILE *yyin;
+extern int line_num;
+extern char *yytext;                        /* current token */
+extern "C" void yypush_buffer_state(int *);
+extern "C" int* yy_create_buffer(FILE*, int);
+
+
+void yyerror(const char *s);
+
+stringstream strs;
+AppConfigParameter *tp;
+int optionCt;
+readexConfigurationTuningPlugin *acpPlugin;
+string filename, templateFilename; 
+
+
+%}
+
+//%defines "conf_parser.hpp"
+
+
+%union {
+  int ival;
+  char *sval;
+}
+
+%start Specification
+
+%token FILENAME
+%token TEMPLATEFILENAME
+%token CONFIGURATION
+%token APPLICATIONPARAMETERS
+%token PARAMETER
+%token VALUESSTR
+%token SEARCHALG
+%token INDIVIDUALKEEP
+%token SAMPLECOUNT
+%token GDE3POPSIZE
+%token RESULTSFILE
+%token OBJECTIVE
+%token ENERGY
+%token NORMALIZEDENERGY
+%token CPUENERGY
+%token NORMALIZEDCPUENERGY
+%token EDP
+%token NORMALIZEDEDP
+%token ED2P
+%token NORMALIZEDED2P
+%token TIME
+%token NORMALIZEDTIME
+%token TCO
+%token NORMALIZEDTCO
+
+
+%token <ival> INT
+%token <sval> STRING
+
+%%
+Specification: CONFIGURATION ConfigList APPLICATIONPARAMETERS FileList
+             | APPLICATIONPARAMETERS FileList
+
+ConfigList: ConfigStmt ConfigList
+          | ConfigStmt
+
+FileList: FileSpec FileList
+        | FileSpec
+
+FileSpec: FileSpecification';' TemplateFileSpecification';' ParameterList
+
+ParameterList: ParameterSpecification ';' ParameterList
+             | ParameterSpecification ';'
+
+ConfigStmt:  SearchAlgSpecification ';'
+          | IndividualKeepSpecification ';'
+          | SampleCountSpecification ';'
+          | GDE3PopulationSizeSpecification ';'
+          | ResultsFileSpecification ';'
+          | ObjectiveSpecification ';'
+
+FileSpecification: FILENAME STRING {filename=$2;}
+
+TemplateFileSpecification: TEMPLATEFILENAME STRING {
+                                                       templateFilename = $2;
+                                                       acpPlugin->addTemplateAndInputFile(templateFilename, filename);
+                                                   }
+
+SearchAlgSpecification: SEARCHALG STRING {acpPlugin->setSearchAlgorithm($2);}
+
+IndividualKeepSpecification: INDIVIDUALKEEP INT {acpPlugin->setIndividualKeep($2);}
+
+SampleCountSpecification: SAMPLECOUNT '=' INT {acpPlugin->setSampleCount($3);}
+
+GDE3PopulationSizeSpecification: GDE3POPSIZE '=' INT {acpPlugin->setGDE3PopulationSize($3);}
+
+ResultsFileSpecification: RESULTSFILE STRING {acpPlugin->setResultsFile($2);}
+
+ObjectiveSpecification: OBJECTIVE ObjectiveName
+
+ObjectiveName: ENERGY              {acpPlugin->setObjectiveName("Energy");}
+             | NORMALIZEDENERGY    {acpPlugin->setObjectiveName("NormalizedEnergy");}
+             | CPUENERGY           {acpPlugin->setObjectiveName("CPUEnergy");}
+             | NORMALIZEDCPUENERGY {acpPlugin->setObjectiveName("NormalizedCPUEnergy");}
+             | EDP                 {acpPlugin->setObjectiveName("EDP");}
+             | NORMALIZEDEDP       {acpPlugin->setObjectiveName("NormalizedEDP");}
+             | ED2P                {acpPlugin->setObjectiveName("ED2P");}
+             | NORMALIZEDED2P      {acpPlugin->setObjectiveName("NormalizedED2P");}
+             | TIME                {acpPlugin->setObjectiveName("Time");}
+             | NORMALIZEDTIME      {acpPlugin->setObjectiveName("NormalizedTime");}
+             | TCO                 {acpPlugin->setObjectiveName("TCO");}
+             | NORMALIZEDTCO       {acpPlugin->setObjectiveName("NormalizedTCO");}
+
+
+ParameterSpecification: PARAMETER {
+                                      tp       = new AppConfigParameter();
+                                      optionCt = 0;
+                                  } STRING {
+                                      tp->setName($3);
+                                  } VALUESSTR TpRange {
+                                      tp->setPluginType(ACP);
+                                      tp->setRuntimeActionType(TUNING_ACTION_NONE);
+                                      acpPlugin->addTP(tp);
+                                      tp->setfilePath(filename);
+                                      tp->setTemplateFilePath(templateFilename);
+                                      //printf("parsed TP %s\n", $2); fflush(stdout);
+                                 }
+
+TpRange: IntRange
+       | StringRange
+
+IntRange: '[' INT ',' INT ']' {tp->setRange($2,$4,1);}
+        | '[' INT ',' INT ',' INT ']' {tp->setRange($2,$4,$6);}
+
+StringRange: '[' StringList ']' {tp->setRange(1,optionCt,1);}
+
+StringList: STRING ',' { tp->addValueString($1);optionCt++;} StringList
+          | STRING {tp->addValueString($1);optionCt++;}
+
+%%
+
+void parseConfig(const char *filename, readexConfigurationTuningPlugin *plugin) {
+    acpPlugin = plugin;
+    // open a file handle to a particular file:
+    psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "Opening file: %s\n", filename);
+    FILE *myfile = fopen(filename, "r");
+    // make sure it's valid:
+    if (!myfile) {
+        cout << "I can't open file!" << endl;
+        exit(-1);
+    }
+    // set lex to read from it instead of defaulting to STDIN:
+    yyin = myfile;
+
+    // parse through the input until there is no more:
+    do {
+        yyparse();
+        if (feof(yyin) && !feof(myfile)) {
+            yyin = myfile;
+            //printf("Switching back to original file\n");fflush(stdout);
+        }
+    } while (!feof(myfile));
+    fclose (myfile);
+}
+
+void yyerror(const char *s) {
+    cout << "Parse error on line " << line_num << "!  Message: " << s << "<" << yytext << ">" <<endl;
+    // might as well halt now:
+    abort();
+}

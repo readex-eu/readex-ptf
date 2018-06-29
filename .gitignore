@@ -1,0 +1,43 @@
+# general ignores
+INSTALL
+Makefile.in
+aclocal.m4
+autom4te.cache/
+compile
+config.guess
+config.h.in
+config.sub
+configure
+depcomp
+install-sh
+ltmain.sh
+missing
+Makefile.in
+test-driver
+ylwrap
+cscope.files
+cscope.in.out
+cscope.out
+cscope.po.out
+m4/libtool.m4
+m4/ltoptions.m4
+m4/ltversion.m4
+m4/lt~obsolete.m4
+
+# for people working with Eclipse PTP
+.cproject
+.project
+.ptp-sync
+.ptp-sync-folder
+.settings
+
+# for people working with VIM
+.vim_nerdtree_bookmarks
+/.autotools
+
+# for people working with CLion
+.idea
+CMakeLists.txt
+
+# Starter plugin configuration
+starterplugin/ptf-plugin.cc

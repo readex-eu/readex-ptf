@@ -1,0 +1,267 @@
+\documentclass[11pt,a4paper, oneside]{book} %twoside,
+
+\usepackage{hyperref}
+\usepackage{color}
+%\usepackage{amssymb}
+%Used for tildes urls
+\usepackage{url}
+%Used for longtables
+\usepackage{longtable}
+\usepackage{graphicx}
+
+
+%Used for having noidentation for paragraphs
+%and vertical spacing between them
+\usepackage{parskip}
+
+\usepackage{listings}
+	
+\newcommand{\draft}[1]{\textcolor{blue}{#1}}
+\newcommand{\hint}[1]{\textcolor{OliveGreen}{[{\it#1}]}}
+\newcommand{\fishy}[1]{\textcolor{red}{#1}}
+\newcommand{\comment}[1]{\marginpar{\scriptsize{\textcolor{red}{#1}}}}
+\newenvironment{code}%
+{
+\addtolength{\leftskip}{0.5cm}}%
+{
+
+}
+
+
+\begin{document}
+
+\title{\includegraphics[width=4cm]{../images/Ptf_LogoBlau}\\ \vspace{1cm}
+\textsf{\bf \huge PTF MPI Parameters Plugin\\User's Guide }\\
+       \normalsize PTF Version: 1.1\\
+       MPI Parameters Plugin Version: 1.1}
+\author{Gertvjola Saveta, Eduardo Cesar, Anna Sikora}
+\date{13.04.2015}
+
+\maketitle
+\tableofcontents
+
+
+\chapter{Introduction}
+
+MPI is the de facto standard for interprocess communications in distributed parallel
+programs and thus it represents a key factor in the optimization of the MPI-based applications.
+However, a library setup for a specific system might not perform equally in a
+different environment (e.g. different architecture or interconnection network), so to increase
+portability most MPI implementations provide multiple configuration parameters.
+These parameters are usually set by experienced users who have a deep understanding of
+a specific MPI application and how it might behave on the target architecture. Changing
+the MPI parameters allows for improving the application performance.
+
+The plugin for MPI Parameter Tuning aims to automatically optimize the values of a
+user selected subset of MPI configuration parameters. The integration with PTF provides
+the plugin with online measurements in the form of high level properties allowing it to
+make tuning decisions based on the actual performance of the application. The plugin
+generates the scenarios to represent specific MPI configurations in the form of tuples of
+parameter-value pairs (i.e. specific combinations of values for the selected subset of MPI
+parameters). These scenarios are executed as experiments via PTF and evaluated using
+the resulting properties. Experiments are performed directly on the target application, but
+we expect to need only a fraction of the program execution (for example a small number
+of iterations) to be able to analyse its behaviour.
+
+The MPIParameters Plugin gives the opportunity to choose between an exhaustive search space or an evolutionary search to reduce the search space.
+The exhaustive search searches all the environment variables and list/ranges of values specified by the user.
+Using evolutionary search the plugin generates the search space that is the crossproduct of all possible combinations of values of the parameters or an initial population of configurations in the search space, executes them all, or applies a genetic algorithm to define a new population using the configurations with the best results (elitism) and new configurations obtained by crossover and mutations, repeating this process a configurable number of times.
+
+The combination of values leading to the lowest execution time is provided to the user as an advice.
+
+\chapter{Quick Start}
+\section{Quick installation}
+The MPIParameters Plugin is being installed along with the Periscope Tuning Framework. Please refer to the \textit{PTF Installation Guide} for a complete description of the installation process.
+
+
+\section{Basic configuration}
+In order to use the MPIParameters plunin, the set of MPI parameters to be tuned must be specified in a configuration file. The name of this file can be indicated using the {\tt PSC\_PARAM\_SPEC\_FILE} environment variable or using the default file \texttt{param\_spec.conf}. Depending on what flavor of MPI is being used, the user can start from one of the three configuration files provided with the plugin: 
+
+
+\begin{center}
+\texttt{\$Periscope/autotune/mpiparameters/src/MPIparam\_ibm.conf}
+\texttt{\$Periscope/autotune/mpiparameters/src/MPIparam\_intel.conf}
+\texttt{\$Periscope/autotune/mpiparameters/src/MPIparam\_openmpi.conf}
+\end{center}
+
+Copy and edit the proper configuration file to reflect the current context of your application. The general syntax for the configuration file is the following:
+
+\begin{code}
+
+\# ********* plugin related settings *************** \\
+\texttt{\textit{\# Configuration File Start and Library Implementation}} \\
+	\textit{\# the desired tuning parameters and search} \\
+	\texttt{\textit{MPI\_PIPO BEGIN} \textit{[openmpi || ibm || intel]} }\\
+	\texttt{\textit{SEARCH=[exhaustive || individual || gde3];}}\\
+	\texttt{\textit{<parameter-name>= initial-value:} [\textit{[+|*}] 				 	\textit{step: final-value>;}}\\
+	\texttt{\textit{<parameter-name>=<comma-separated-list-of-values>;}}\\
+	\texttt{\textit{\# Configuration File End}}\\
+	MPIPO\_END\\
+\# *************************************************
+\end{code}
+
+\section{Running MPI Parameters Plugin}
+MPIParameters runs as a plugin within the Periscope Tuning Framework. It can be started using \texttt{psc\_frontend} (see also \textit{PTF User's Guide}) by setting the \texttt{tune} flag to \texttt{mpiparameters}.
+\begin{center}
+\texttt{--tune=mpiparameters}
+\end{center}
+
+For an application, one would call from within the folder:
+\vspace*{0.5cm}
+
+\texttt{psc\_frontend --apprun="./Application" --mpinumprocs=4 --tune=mpiparameters}
+
+\vspace*{0.5cm}
+This will start the measurements and the MPIParameters tuning strategy for the application using four processes.
+
+\section{Execution results}
+Upon successful completion of the tuning measurements, the MPIParameters plugin displays at the standard output the list of all parameter combinations (scenarios) that were used in the search along with the corresponding execution times (severity), and the flags' values used for each scenario. It also outputs the scenario with the best execution time.
+
+For example, this is the output of the above call to \texttt{psc\_frontend} for the BT-MZ benchmark for two tuning parameters:
+
+\begin{code}
+\texttt{
+Found best scenario: 8\\
+Parameter combination: \\
+--mca mp\_buffer\_mem 64M    --mca mp\_eager\_limit 16
+\\
+All Results:\\
+-----------------------\\
+\\
+Scenario  |   Runtime    | Flags\\
+\\
+0         |	2.359510 | --mca mp\_buffer\_mem 16M --mca mp\_eager\_limit 12 \\
+1         |	2.251537 | --mca mp\_buffer\_mem 16M --mca mp\_eager\_limit 14 \\
+2         |	2.243806 | --mca mp\_buffer\_mem 16M --mca mp\_eager\_limit 16 \\
+3         |	2.224361 | --mca mp\_buffer\_mem 32M --mca mp\_eager\_limit 12 \\
+4         |	2.240855 | --mca mp\_buffer\_mem 32M --mca mp\_eager\_limit 14 \\
+5         |	2.226031 | --mca mp\_buffer\_mem 32M --mca mp\_eager\_limit 16 \\
+6         |	2.221029 | --mca mp\_buffer\_mem 64M --mca mp\_eager\_limit 12 \\
+7         |	2.230055 | --mca mp\_buffer\_mem 64M --mca mp\_eager\_limit 14 \\
+8         |	2.218171 | --mca mp\_buffer\_mem 64M --mca mp\_eager\_limit 16 \\
+\\
+}
+
+\end{code}
+
+
+\chapter{MPIParameters AutoTuning Approach}\label{sec:mappingPTF}
+MPIParameters follows the general PTF plugin approach (see also \textit{PTF User's Guide}).
+
+\section{Tuning parameters}
+
+Tuning parameters are depended on the MPI Library.  Users should create the configuration file specifying the MPI library parameters to be tuned and a range of valid values for each of them. Depending on the parameter, the valid values may vary; some of them require a Boolean value (e.g. {\tt pe\_affinity} (yes,no)), while others need a string of characters (e.g. {\tt task\_affinity} (core, cpu)), or a range of integers (e.g. {\tt eager\_limit} (from a few bytes to 64KB), {\tt buffer\_mem} (from 4KB to 2GB), {\tt polling\_interval} (from 1 to 2 billion microseconds)). In addition, users can specify the kind of search strategy the plugin should apply, choosing between an exhaustive, individual or genetic strategy {\tt SEARCH=[exhaustive || indiviudal || gde3];}.
+
+Under { \tt \$PERISCOPE\_ROOT/autotune/mpiparameters/src/} the user can find sample configuration files for the supported libraries.
+
+\section{Search strategy}
+In order to find the best tuning of an application, a search through the tuning space has to be performed. For the MPIParameter plugin, the search strategies that can be used are, exhaustive individual and evolutionary.
+
+
+\section{Tuning scenario}
+Tuning scenarios are  being generated at run time, and the performance of the application is being evaluated for each of these scenarios. In the MPIParameters plugin, one scenario represents either a tuning parameter or a combination of them.
+
+\section{Tuning action}
+
+Applying a scenario to the application means setting the tuning parameters before running the application. Thus, the tuning action is used to set the tuning parameters. Note that the application is automatically retested for each of the created scenarios.
+
+\chapter{Configuration}
+\section{Configuration files}
+All configuration settings for the MPIParameters plugin are read at execution time from the configuration file. The default name of the configuration file is \texttt{param\_spec.conf}, but a different file can be specified using the {\tt PSC\_PARAM\_SPEC\_FILE} environment variable.
+
+The configuration file is being searched in the folder from which the \texttt{psc\_frontend} was started. Hence, if the name also includes a relative path to the file, it has to be relative to that folder.
+
+\section{MPIParameters tuning parameters}
+The tuning parameters and the search desired for the MPIParameters plugin are defined in the configuration file as follows:
+
+\begin{code}
+\# ********* plugin related settings *************** \\
+	\texttt{\textit{\# Configuration File Start and Library Impementation}} \\
+	\textit{\# the desired tuning parameters and search} \\
+	\texttt{\textit{MPI\_PIPO BEGIN} \textit{[openmpi || ibm || intel]} }\\
+	\texttt{\textit{SEARCH=[exhaustive ||  individual || gde3];}}\\
+	\texttt{\textit{<parameter-name>= initial-value:} [\textit{[+|*}] 				 	\textit{step: final-value>;}}\\
+	\texttt{\textit{<parameter-name>=<comma-separated-list-of-values>;}}\\
+	\texttt{\textit{\# Configuration File End}}\\
+	MPIPO\_END\\
+\# *************************************************
+\end{code}
+
+Tuning parameters included in the configuration file are build depending on the MPI flavor used by the application. There are three flavors directly supported by the plugin: IBM MPI, Intel MPI and OpenMPI. In any of these cases the user specifies the desired command line flags and the values that should be tested. The following templates are provided with the plugin for each of these flavors:
+
+\begin{verbatim}
+MPIPO_BEGIN ibm
+eager_limit=4096:2048:65560;
+buffer_mem=8388608:2097152:134217728;
+use_bulk_xfer=yes,no;
+bulk_min_msg_size=4096:4096:1048576;
+pe_affinity=yes,no;
+cc_scratch_buf=yes,no;
+wait_mode=nopoll,poll;
+css_interrupt=yes,no;
+polling_interval=100000:10000:1000000;
+SEARCH=gde3;
+MPIPO_END 
+
+MPIPO_BEGIN intel
+I_MPI_EAGER_THRESHOLD=4096:2048:65560;
+I_MPI_INTRANODE_EAGER_THRESHOLD=4096:2048:65560;
+I_MPI_SHM_LMT=shm,direct,no;
+I_MPI_SPIN_COUNT=1:2:500;
+I_MPI_SCALABLE_OPTIMIZATION=yes,no;
+I_MPI_WAIT_MODE=yes,no;
+I_MPI_USE_DYNAMIC_CONNECTIONS=yes,no;
+I_MPI_SHM_FBOX=yes,no;
+I_MPI_SHM_FBOX_SIZE=2048:512:65472;
+I_MPI_SHM_CELL_NUM=64:4:256;
+I_MPI_SHM_CELL_SIZE=2048:1024:65472;
+SEARCH=gde3;
+MPIPO_END
+
+MPIPO_BEGIN openmpi
+mpi_paffinity_alone=0,1;
+btl_openib_eager_limit=1024:2048:65560; 
+btl_openib_free_list_num=2:4:128;
+btl_openib_use_eager_rdma=0,1;
+btl_openib_eager_rdma_num=1:2:32;
+btl_sm_eager_limit=1024:2048:65560; 
+btl_sm_num_fifos=1:1:10;
+btl_sm_fifo_size=2048:512:65472;
+btl_sm_free_list_num=2:4:128;
+MPIPO_END
+\end{verbatim}
+
+A detailed description of these parameters and the complete list of parameters for each flavor can be found at:
+
+\begin{itemize}
+\item IBM: \url{https://www.lrz.de/services/software/paralell/mpi/ibmmpi/}
+\item Intel: \url{https://software.intel.com/en-us/mpi-refman-lin-5.0.3-html}
+\item OpenMPI: \url{http://www.open-mpi.org/faq/}
+\end{itemize}
+
+For these three cases, the plugin will build the proper command line, for example:
+
+{\tt mpiexec -n <numprocs> <application> <application-args> <MPI-args>} 
+
+However, the plugin can also support any other MPI flavor, but in this case users must specify the corresponding environment variables and the plugin will build the proper {\tt export} command in order to set their values for each scenario.
+
+\section{Improved tuning time}
+To guide the MPIParameters plugin to speedup the tuning process, run an instrumented version of the application.
+
+
+\subsection{Instrumented applications}
+
+If a region is defined within the application, then the Periscope Tuning Framework will only perform measurements for that region (see also \textit{PTF User's Guide}).
+This means, for example, that if the application has a main iterative loop, one could define as a region the body of the loop, thus always measuring only one iteration instead of the entire execution.
+By default, PTF runs on instrumented applications.
+
+Please note that, in the uninstrumented mode, the execution time is measured as the wall clock time of the system command which executes the application. This means that reliable results can be achieved only if the execution time of the application is not too small.
+
+
+\chapter{How To Use the Tuning Advice}
+
+The best combination of values is selected based on the value of the {\tt ExecTime} property. These values are returned to the user as the recommended
+configuration for the selected MPI library parameters. This advice can be applied by assigning the values to the corresponding environment variables, for example {\tt set MP\_EAGER\_LIMIT = 16384} for IBM MPI, or by passing the value as an option in the {\tt mpirun} command, for example {\tt -eager\_limit 16384} for IBM MPI.
+
+
+\end{document}

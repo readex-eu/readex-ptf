@@ -1,0 +1,182 @@
+%{
+	#include <cstdio>
+	#include <vector>
+	#include <stdio.h>
+	#include <stdlib.h>
+	#include <string>
+	#include <iostream>
+	#include <sstream>
+	#include "mwparam.h" 	//this include will be eliminated once its definitions are included in
+							//autune_services.h
+//	#include "autotune_services.h"
+	#include "psc_errmsg.h"
+
+	using namespace std;
+
+// stuff from flex that bison needs to know about:
+	extern "C" int yylex();
+	extern "C" int yyparse();
+	extern "C" FILE *yyin;
+	extern int line_num;
+ 
+	void yyerror(const char *s);
+
+	stringstream strs;
+	
+	vector<MW_TP> tps;
+%}
+
+%union {
+	int ival;
+	double fval;
+}
+
+%token MWT_BEGIN MWT_END PF NW NETSPEED NETLATENCY MASTERRECV WORKERRECV WORKERFUNC TASKSIZE IMBALANCETHR INTERVALSEP ENDL
+
+%token <ival> INT 
+%token <fval> FLOAT;
+
+%%
+mwt_conf:
+	header body_section footer {}
+	;	
+	
+header: 
+	MWT_BEGIN { cout << "Reading a MWT conf file" << endl; 
+				tps.clear();
+	}	
+	;
+	
+body_section:
+	body_lines
+	;
+body_lines:
+	body_lines body_line
+	| body_line
+	;
+	
+body_line:
+	PF { cout << "PF" << endl;
+		MW_TP tp;
+		tp.ptype = PART_F;
+		tps.push_back(tp); } 
+		values ENDL
+	| NW { cout << "NW" << endl; 
+			MW_TP tp;
+			tp.ptype = NUM_W;
+			tps.push_back(tp);} values ENDL
+	| NETSPEED { cout << "NSPEED" << endl;
+                     MW_TP tp;
+                     tp.ptype = NSPEED;
+                     tps.push_back(tp); 
+                   } 
+                     fvalues ENDL
+        | NETLATENCY { cout << "NLAT" << endl; 
+                        MW_TP tp;
+                        tp.ptype = NLATENCY;
+                        tps.push_back(tp); 
+                     } 
+                     fvalues ENDL
+        | MASTERRECV { cout << "MREC" << endl;
+                        MW_TP tp;
+                        tp.ptype = MRECV;
+                        tps.push_back(tp); 
+                     }
+                     values ENDL
+        | WORKERRECV { cout << "WREC" << endl;
+                        MW_TP tp;
+                        tp.ptype = WRECV;
+                        tps.push_back(tp); 
+                     }
+                     values ENDL
+        | WORKERFUNC { cout << "WFUN" << endl;
+                        MW_TP tp;
+                        tp.ptype = WFUNCT;
+                        tps.push_back(tp); 
+                     } 
+                     values ENDL
+        | TASKSIZE   { cout << "TSZ" << endl;
+                        MW_TP tp;
+                        tp.ptype = TSIZE;
+                        tps.push_back(tp); 
+                     } 
+                     ivalues ENDL
+        | IMBALANCETHR { cout << "ITHR" << endl;
+                         MW_TP tp;
+                         tp.ptype = UNTHR;
+                         tps.push_back(tp); 
+                       }
+                       ivalues ENDL
+        ;
+
+values:
+        INT INTERVALSEP INT {  cout << "From:" << $1 << "to:" << $3 <<  endl;
+                               tps.back().start=$1;
+                               tps.back().end=$3; 
+                            }
+	| INT INTERVALSEP INT INTERVALSEP INT {cout << "From:" << $1 << "to:" << $5 << "step:" << $3 << endl;
+
+                tps.back().start=$1;
+
+                tps.back().step=$3;
+
+                tps.back().end=$5;
+	}
+        ;
+
+ivalues:
+        INT { cout << "INT" << $1 << endl;
+              tps.back().start = $1;
+            }
+            ;
+
+fvalues:
+        FLOAT { cout << "FLOAT" << $1 << endl;
+                tps.back().startfloat = $1;
+              }
+              ; 
+footer:
+	MWT_END ENDL
+	| MWT_END
+	;
+%%
+
+vector<MW_TP> getTuningParametersMW(const char *filename) {
+	// open a file handle to a particular file:
+	psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins),
+                    "Opening file: %s\n", filename );
+	FILE *myfile = fopen(filename, "r");
+	// make sure it's valid:
+	if (!myfile) {
+		cout << "I can't open file!" << endl;
+		return tps;
+	}
+	// set lex to read from it instead of defaulting to STDIN:
+	yyin = myfile;
+	
+	// parse through the input until there is no more:
+	do {
+		yyparse();
+	} while (!feof(yyin));
+	fclose (myfile);
+	
+	return tps;
+}
+
+void yyerror(const char *s) {
+	cout << "Parse error on line " << line_num << "!  Message: " << s << endl;
+	// might as well halt now:
+	abort();
+}
+
+/*int main(){
+	int i;
+	vector<MW_TP> conftps = getTuningParametersMW("prueba.conf");
+
+	for (int i = 0; i < conftps.size(); i++) {
+    	MW_TP mpitp = conftps.at(i);
+    	cout << "parameter " << i << " from: " << mpitp.start << " to: " << mpitp.end << " step: " << mpitp.step << endl;
+	}
+			
+	return 0;
+}*/

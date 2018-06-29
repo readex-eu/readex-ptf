@@ -1,0 +1,92 @@
+%{
+#include <cstdio>
+#include <vector>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
+#include <iostream>
+#include <sstream>
+#include "FixedSequencePlugin.h"
+
+//#include "lex.h"
+
+using namespace std;
+
+//#include "y.tab.h"  // to get the token types that we return
+
+// stuff from flex that bison needs to know about:
+extern "C" int yylex();
+extern "C" int yyparse();
+extern "C" FILE *yyin;
+extern int line_num;
+extern char *yytext;                        /* current token */
+extern "C" void yypush_buffer_state(int *);
+extern "C" int* yy_create_buffer(FILE*, int);
+
+ 
+void yyerror(const char *s);
+
+stringstream strs;
+int optionCt;
+FixedSequencePlugin *fsPlugin;
+
+%}
+
+//%defines "conf_parser.hpp"
+
+
+%union {
+  int ival;
+  char *sval;
+}
+
+%start Specification
+
+%token PLUGINS
+%token <ival> INT
+%token <sval> STRING
+
+%%
+Specification: StmtList
+
+StmtList: Stmt StmtList
+        | Stmt
+        
+Stmt: PluginsSpecification ';'
+
+PluginsSpecification: PLUGINS '=' StringList
+
+StringList: STRING ',' StringList { /*printf("Plugin %s\n", $1);*/ fsPlugin->addPlugin(new std::string($1)); }
+          | STRING                { /*printf("Plugin %s\n", $1);*/ fsPlugin->addPlugin(new std::string($1)); }
+
+%%
+
+void parseConfig(const char *filename, FixedSequencePlugin *plugin) {
+  fsPlugin = plugin;
+  // open a file handle to a particular file:
+  psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "Opening file: %s\n", filename);
+  FILE *myfile = fopen(filename, "r");
+  // make sure it's valid:
+  if (!myfile) {
+    cout << "I can't open file!" << endl;
+    exit(-1);
+  }
+  // set lex to read from it instead of defaulting to STDIN:
+  yyin = myfile;
+
+  // parse through the input until there is no more:
+  do {
+    yyparse();
+    if (feof(yyin) && !feof(myfile)) {
+      yyin = myfile;
+      //printf("Switching back to original file\n");fflush(stdout);
+    }
+  } while (!feof(myfile));
+  fclose (myfile);
+}
+
+void yyerror(const char *s) {
+  cout << "Parse error on line " << line_num << "!  Message: " << s << "<" << yytext << ">" <<endl;
+  // might as well halt now:
+  abort();
+}

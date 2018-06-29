@@ -1,0 +1,103 @@
+
+% ****************************************************************************************************
+% Loading some handy packages
+% ****************************************************************************************************
+\usepackage{hyperref}
+\usepackage[english]{babel}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{datetime}
+\usepackage{listings}
+\usepackage{amsmath}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{color}
+\usepackage[square,numbers]{natbib}
+
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+
+
+%\usepackage[textsize=tiny,color=blue!2,textwidth=0cm]{todonotes}
+
+
+%****************************************************************************************************
+% Fine-tuning and further settings
+% ****************************************************************************************************
+
+\hyphenation{ VAMPIR KOJAK time-stamp }
+
+%\textwidth=17cm
+
+%\textheight=22cm
+
+\setlength{\unitlength}{0.5cm}
+
+\setlength{\parindent}{0.0cm}
+
+\setlength{\parskip}{1.0ex}
+
+%\addtolength{\leftargin}{-1cm}
+
+\linespread{1.0}
+
+\raggedbottom \sloppy
+
+%\addtolength{\evensidemargin}{1cm}
+
+%\addtolength{\oddsidemargin}{-2cm}
+
+\addtolength{\topmargin}{-0.5cm}
+
+% date formatting
+\renewcommand{\dateseparator}{.}
+
+
+%****************************************************************************************************
+% Header and Footer
+% ****************************************************************************************************
+
+\pagestyle{fancy}
+\lhead{AutoTune}
+\chead{} % Define this in your document to Deliverable Dx.y
+\rhead{\date}
+\cfoot{} % important (eliminated standard page number on footer)
+\rfoot{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+%****************************************************************************************************
+% Some TODO's commands and settings
+% ****************************************************************************************************
+% own comments and commands for all authors:
+%\newcommand{\AuthorsList}{% NOTE: no spaces after comma
+%MG,% Michael Gerndt
+%IC,% Isaias Compres
+%MS,% Martin Sandrieser
+%LM,% Laurent Morin
+%CG,% Carla Guillen
+%EC,% Eduardo Caesar
+%AB}% Anca Berariu
+
+% Anca Berariu (AB)
+%\newcommand{\mytodoAB}[2][]{\todo[color=blue!2,noline, #1]{\textbf{TODO[AB]:} #2}}
+%\newcommand{\mycommentAB}[2][]{\todo[color=yellow!25,line, #1]{\textbf{Comment[AB]:} #2}}
+%\newcommand{\myfixmeAB}[2][]{\todo[color=red!5,noline, #1]{\textbf{FIXME[AB]:} #2}}
+% et.al. ........
+% ...............
+% ...............
+
+%default commands
+%\newcommand{\mytodo}[2][]{\todo[color=blue!2,noline, #1]{\textbf{TODO:} #2}}
+%\newcommand{\mycomment}[2][]{\todo[color=yellow!25,line, #1]{\textbf{Comment:} #2}}
+%\newcommand{\myfixme}[2][]{\todo[color=red!5,line, #1]{\textbf{FIXME:} #2}}
+
+%command for adding subsubsub section using \paragraph
+\usepackage{titlesec}
+\setcounter{secnumdepth}{4}
+
+\titleformat{\paragraph}
+{\normalfont\normalsize\bfseries}{\theparagraph}{1em}{}
+\titlespacing*{\paragraph}
+{0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}

@@ -1,0 +1,9 @@
+# Set this to your installation location of Periscope
+export PERISCOPE_ROOT=@prefix@
+
+export PATH=$PERISCOPE_ROOT/bin:$PATH
+export LD_LIBRARY_PATH=$PERISCOPE_ROOT/lib:$LD_LIBRARY_PATH
+
+# Specify the required linking info for your papi installation
+#export PAPI_ROOT=/opt/papi-4.0.0
+#export PAPI_SHLIB="-L$PAPI_ROOT/lib/ -lpapi -lpfm"

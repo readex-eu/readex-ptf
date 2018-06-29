@@ -1,0 +1,1 @@
+python @prefix@/bin/psc_properties.py $@

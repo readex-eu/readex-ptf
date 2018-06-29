@@ -1,0 +1,7 @@
+Version 1.0
+* Tuning the frequency to optimize the energy consumption.
+
+Version 1.1
+* Model based prediction of best frequency.
+* Region level tuning.
+* New tuning objectives: energy delay product, power capping, total cost of ownership, and four policies for power and energy and performance degradation.

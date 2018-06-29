@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+echo "Checking out $1 ..."
+git checkout master >/dev/null 2>&1
+git checkout $1 >/dev/null 2>&1
+
+echo "Bootstrapping the build system in working tree..."
+./bootstrap >/dev/null 2>&1
+
+echo "Setting up the preparation folder..."
+rm -rf ../PTF-$1
+mkdir ../PTF-$1
+git archive $1 | tar -x -C ../PTF-$1 >/dev/null 2>&1
+
+echo "Bootstrapping the build system in tree to be distributed..."
+cd ../PTF-$1
+./bootstrap >/dev/null 2>&1
+cd - >/dev/null 2>&1
+
+echo "Copying release information..."
+cp -a RELEASE ../PTF-$1/RELEASE
+cp ./REVISION ../PTF-$1/REVISION
+cp ./autotune/plugins/compilerflags/REVISION ../PTF-$1/autotune/plugins/compilerflags/REVISION
+cp ./autotune/plugins/dvfs/REVISION ../PTF-$1/autotune/plugins/dvfs/REVISION
+cp ./autotune/plugins/masterworker/REVISION ../PTF-$1/autotune/plugins/masterworker/REVISION
+cp ./autotune/plugins/mpiparameters/REVISION ../PTF-$1/autotune/plugins/mpiparameters/REVISION
+cp ./autotune/plugins/pipeline/REVISION ../PTF-$1/autotune/plugins/pipeline/REVISION
+
+echo "Generating the archive for distribution..."
+cd ..
+rm -rf PTF-$1.tar.bz2
+tar acf PTF-$1.tar.bz2 PTF-$1
+echo "Removing preparation folder..."
+rm -rf PTF-$1
+
+echo "======================================================================================="
+echo "Distribution file ready: PTF-$1.tar.bz2 "
+echo "======================================================================================="

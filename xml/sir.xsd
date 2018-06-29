@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.lrr.in.tum.de/Periscope" xmlns:psc="http://www.lrr.in.tum.de/Periscope" attributeFormDefault="unqualified" elementFormDefault="qualified">
+
+  <xs:element name="sir">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="unit" type="psc:Unit" maxOccurs="unbounded" minOccurs="1"/>
+      </xs:sequence>
+      <xs:attribute name="language" type="psc:LanguagesType"/>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:complexType name="Unit">
+    <xs:sequence>
+      <xs:group ref="psc:pos_array" maxOccurs="1" minOccurs="0"/>
+      <xs:element name="unit" type="psc:Unit" maxOccurs="unbounded" minOccurs="0"/>
+      <xs:element name="codeRegion" type="psc:CodeRegionType" maxOccurs="unbounded" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="type" type="psc:UnitType"/>
+    <xs:attribute name="name" type="xs:string"/>
+    <xs:attribute name="datascopeclause" type="xs:string"/>
+    <xs:attribute name="id" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="PositionType">
+    <xs:sequence>
+      <xs:element name="file">
+        <xs:complexType>
+          <xs:attribute name="name" type="xs:string"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="startLine" type="xs:positiveInteger"/>
+    <xs:attribute name="endLine" type="xs:positiveInteger"/>
+  </xs:complexType>
+
+  <xs:complexType name="CodeRegionType">
+    <xs:sequence>
+      <xs:group ref="psc:pos_array" maxOccurs="1" minOccurs="1"/>
+      <xs:element name="codeRegion" type="psc:CodeRegionType" maxOccurs="unbounded" minOccurs="0"/>
+      <xs:element name="plugin" type="psc:PluginNameType" maxOccurs="unbounded" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="type" type="psc:RegionType"/>
+    <xs:attribute name="name" type="xs:string"/>
+    <xs:attribute name="datascopeclause" type="xs:string"/>
+    <xs:attribute name="id" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="PluginNameType">
+    <xs:sequence>
+      <xs:element name="selector" type="psc:SelectorType" maxOccurs="1" minOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="pluginId" type="psc:PluginType"/>
+  </xs:complexType>
+
+  <xs:complexType name="SelectorType">
+    <xs:sequence>
+      <xs:element name="codeVariant" type="psc:CodeVariantType" maxOccurs="unbounded" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="tuningActionName" type="xs:string"/>
+    <xs:attribute name="numberOfVariants" type="xs:positiveInteger"/>
+    <xs:attribute name="min" type="xs:integer"/>
+    <xs:attribute name="max" type="xs:integer"/>
+    <xs:attribute name="step" type="xs:integer"/>
+  </xs:complexType>
+
+  <xs:complexType name="CodeVariantType">
+    <xs:sequence>
+      <xs:element name="group" maxOccurs="1" minOccurs="0">
+        <xs:complexType>
+          <xs:attribute name="name" type="xs:string"/>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="target" maxOccurs="unbounded" minOccurs="1">
+        <xs:complexType>
+          <xs:attribute name="name" type="psc:TargetType"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:group name="pos_array">
+    <xs:sequence>
+      <xs:element name="position" type="psc:PositionType" maxOccurs="1" minOccurs="1"/>
+      <xs:element name="array" maxOccurs="unbounded" minOccurs="0">
+        <xs:complexType>
+          <xs:attribute name="type" type="psc:ArrayType"/>
+          <xs:attribute name="name" type="xs:string"/>
+          <xs:attribute name="nelts" type="xs:positiveInteger"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+
+  <xs:element name="codeRegion" type="psc:CodeRegionType"/>
+
+  <xs:simpleType name="RegionType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="userRegion"/>
+      <xs:enumeration value="call"/>
+      <xs:enumeration value="loop"/>
+      <xs:enumeration value="vect"/>
+      <xs:enumeration value="forall"/>
+      <xs:enumeration value="io"/>
+      <xs:enumeration value="parallelRegion"/>
+      <xs:enumeration value="parallelLoop"/>
+      <xs:enumeration value="parallelSections"/>
+      <xs:enumeration value="parallelSection"/>
+      <xs:enumeration value="parallelSingle"/>
+      <xs:enumeration value="parallelWorkshare"/>
+      <xs:enumeration value="parallelMaster"/>
+      <xs:enumeration value="parallelCriticalSection"/>
+      <xs:enumeration value="parallelAtomic"/>
+      <xs:enumeration value="parallelBarrier"/>
+      <xs:enumeration value="parallelOrdered"/>
+      <xs:enumeration value="workshare"/>
+      <xs:enumeration value="workshareSections"/>
+      <xs:enumeration value="workshareLoop"/>
+      <xs:enumeration value="parallelTask"/>
+      <xs:enumeration value="taskWait"/>
+      <xs:enumeration value="oclMemCmd"/>
+      <xs:enumeration value="oclKernelCall"/>
+      <xs:enumeration value="cudaMemTransfer"/>
+      <xs:enumeration value="cudaKernelCall"/>
+      <xs:enumeration value="pipeInBuffer"/>
+      <xs:enumeration value="pipeOutBuffer"/>
+      <xs:enumeration value="pipeStage"/>
+      <xs:enumeration value="pipeline"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="UnitType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="program"/>
+      <xs:enumeration value="subroutine"/>
+      <xs:enumeration value="function"/>
+    </xs:restriction>
+  </xs:simpleType>
+	
+  <xs:simpleType name="LanguagesType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="c"/>
+      <xs:enumeration value="c++"/>
+      <xs:enumeration value="fortran"/>
+    </xs:restriction>
+  </xs:simpleType>
+	
+  <xs:simpleType name="ArrayType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="INTEGER"/>
+      <xs:enumeration value="REAL"/>
+      <xs:enumeration value="CHARACTER"/>
+      <xs:enumeration value="LOGICAL"/>
+      <xs:enumeration value="COMPLEX"/>
+      <xs:enumeration value="DOUBLE"/>
+      <xs:enumeration value="DERIVED"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="PluginType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="HMPP"/>
+      <xs:enumeration value="Barcelona"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TargetType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="OpenCL"/>
+      <xs:enumeration value="CUDA"/>
+      <xs:enumeration value="CPU"/>
+    </xs:restriction>
+  </xs:simpleType>
+</xs:schema>

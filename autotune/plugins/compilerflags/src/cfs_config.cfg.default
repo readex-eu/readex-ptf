@@ -1,0 +1,17 @@
+// ********* application related settings **********
+// the path to the Makefile
+makefile_path="../";
+// the variable containing the build flags
+makefile_flags_var="FFLAGS";
+// arguments for the make command
+makefile_args="BT-MZ CLASS=W TARGET=BT-MZ";
+// path to the source files of the application
+application_src_path="../BT-MZ";
+// *************************************************
+
+// ********* plugin related settings ***************
+// the desired search algorithm: exhaustive or individual
+search_algorithm="exhaustive";
+// the compiler flags to be considered in the search
+tp "Opt" = "-" ["O1", "O2", "O3"];
+// *************************************************

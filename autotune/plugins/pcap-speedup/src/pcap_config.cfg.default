@@ -1,0 +1,19 @@
+// NOTE: Copy this file to the working directory and rename it to pcap_config.cfg
+// NOTE: Change the options below as needed & pass argument "--pcap-config=pcap_config.cfg" to psc_frontend so that the plugin reads this file
+// ********* plugin settings **********
+// the desired search algorithm: exhaustive or gde3
+search_algorithm="exhaustive";
+// include parallel regions
+parallelRegions="true";
+// include user region
+userRegion="false";
+// if parallelRegions=="false", options below are ignored
+// Minimum no of regions to be considered
+minRegionsToConsider=3;
+// Maximum no of regions to be considered
+maxRegionsToConsider=3;
+// first cutoff => regions with execution time >= cutoff1% are included until max limit is reached
+cutoff1=0.2;
+// second cutoff => if no added regions are less than min limit, then regions with execution time < cutoff1% & >=cutoff2% are included
+cutoff2=0.1;
+// *************************************************

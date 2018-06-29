@@ -1,0 +1,40 @@
+%{
+#include <iostream>
+#include "conf_parser.hpp"
+using namespace std;
+#define YY_DECL extern "C" int yylex()
+int line_num = 1;
+%}
+
+%option noyywrap
+%x VARS
+%x VALUES
+%x INTVALUES
+%x FVALUES
+%x INTERVAL
+%x COMMENT
+%%
+[ \t]          			;
+MWT_BEGIN\n				{ BEGIN(VARS); ++line_num; return MWT_BEGIN;}
+<VARS>PF=				{ BEGIN(VALUES); return PF;}
+<VARS>NW=				{ BEGIN(VALUES); return NW;}
+<VARS>NETSPEED=                         { BEGIN(FVALUES); return NETSPEED;}
+<VARS>NETLATENCY=                       { BEGIN(FVALUES); return NETLATENCY;}
+<VARS>MASTERRECV=                       { BEGIN(VALUES); return MASTERRECV;}
+<VARS>WORKERRECV=                       { BEGIN(VALUES); return WORKERRECV;}
+<VARS>WORKERFUNC=                       { BEGIN(VALUES); return WORKERFUNC;}
+<VARS>TASKSIZE=                         { BEGIN(INTVALUES); return TASKSIZE;}
+<VARS>IMBALANCETHR=                     { BEGIN(INTVALUES); return IMBALANCETHR;}
+<VARS>MWT_END                           { yy_flush_buffer(YY_CURRENT_BUFFER); BEGIN(INITIAL); return MWT_END; }
+<VALUES,INTERVAL>[0-9]+                 { yylval.ival = atoi(yytext); return INT; }
+<VARS>#                                 { BEGIN(COMMENT);}
+<COMMENT>\n                             { BEGIN(VARS); ++line_num;}
+<COMMENT>.                              ;
+<INTVALUES>\n                           |
+<FVALUES>\n                             |
+<VALUES,INTERVAL>\n                     { BEGIN(VARS); ++line_num; return ENDL; }
+<VALUES,INTERVAL>:                      { BEGIN(INTERVAL); return INTERVALSEP; }
+<INTVALUES>[0-9]+                       { yylval.ival = atoi(yytext); return INT; }
+<FVALUES>[0-9]+.[0-9]+                  { yylval.fval = atof(yytext); return FLOAT; }
+.                                       ;
+%%

@@ -1,0 +1,140 @@
+\subsubsection{Score-P developer tools}
+Score-P developer tools used for Score-P development contain Libtool, Autoconf,
+Automake, M4 macro system, uncrustify and doxygen.
+
+Score-P developer tools are available as modules on some systems, like \textcolor{red}{SuperMUC or }
+Taurus; or as source directly from a Score-P developers repository. Please note
+that you need to be a Score-P developer to get credentials to Score-P
+developers repository.
+
+SuperMUC and Taurus already have modules for Score-P developer tools which can
+be loaded by executing:
+
+\texttt{module load scorep-dev}
+
+To install them from source first clone the svn repository:
+
+\texttt{svn co\\
+\scorepdevurl\\
+ scorep-dev}
+
+Then, run the install script:
+
+\texttt{sh install-scorep-dev.05.sh -{}-prefix=\installloc scorep-dev} \\
+
+If you have installed Score-P developer tools under your home directory and not
+system-wide you should specify its binaries location in the PATH environment
+variable. To configure the location with bash shell execute the following
+command:
+
+\texttt{export PATH=\installloc scorep-dev:\$PATH}
+
+\subsubsection{Lexer and parser generators: Bison v2.5+, LEX}
+Lexer and parser generators are available on SuperMUC; as modules on some
+systems, like Taurus; from Debian's APT and as source from the developers
+webpage.
+
+SuperMUC does not require Bison or LEX to be loaded as a module, it is
+available by default.
+Taurus already provides modules which can be loaded by executing:
+
+\texttt{module load flex/2.5.39 bison/3.0.4}
+
+In Debian-based distributions they are available as GNU Bison implementation of
+YACC and flex through its apt-get package managements system. To install them
+through Debian's APT execute the following command:
+
+\texttt{sudo apt-get install bison flex}
+
+To install them from source first download the packages, with aforementioned
+version, and unpack them in a per-tool temporary directory. Then, run the
+configure script:
+
+\texttt{./configure -{}-prefix=\installloc <bison/flex>} \\
+
+Then run:
+
+\texttt{make}
+
+When make has finished compiling the tool then install it by executing:
+
+\texttt{make install}
+
+Repeat the same procedure for the both tools.
+
+If you have installed them under your home directory and not system-wide you
+should specify its binaries location in the PATH environment variable. To
+specify the location add the following command into your startup bash script,
+i.e., \$HOME/.bashrc:
+
+\texttt{export PATH=\installloc <bison/flex>/bin:\$PATH}
+
+
+\subsubsection{Compilers: gcc, g++, gfortran, gcc-multilib}
+SuperMUC already has compiler modules which can be loaded by executing:
+
+\texttt{module load gcc/4.7}  (loads gcc, g++ and gfortran)
+
+Taurus also has compiler modules which can be loaded by executing:
+
+\texttt{module load gcc/4.6.2} (loads gcc, g++ and gfortran)
+
+Compilers are available in many Linux distributions through its package management systems.
+In Debian-based distributions it is available through its apt-get package managements system.
+
+\texttt{sudo apt-get install gcc g++ gfortran gcc-multilib}
+
+\subsection{Optional dependencies}
+
+\subsubsection{(Optional) Documentation generation: Doxygen, LaTeX}
+
+\paragraph{Doxygen} documentation generator
+
+Doxygen package is available as a module on some systems, like SuperMUC and
+Taurus; from a distribution package management system, like Debian's APT; or as
+source directly from a tool developers webpage.
+
+To install FLEX through Debian's APT execute the following command:
+
+\texttt{sudo apt-get install doxygen}
+
+SuperMUC already has doxygen module which can be loaded by executing:
+
+\texttt{module load doxygen}
+
+On Taurus doxygen is part of scorep-dev module.
+
+To install from source first download it.
+The location of source is:
+
+\doxygenurl
+
+Download and untar the tarball with the source.
+Enter the directory where the source is located.
+
+Configure the installation and specify the location where doxygen should be
+installed.
+
+\texttt{./configure --prefix=\installloc doxygen}
+
+\texttt{make}
+
+\texttt{make install}
+
+If you have installed Doxygen under your home directory and not system-wide you
+should specify its location in the PATH and LD\_LIBRARY\_PATH environment
+variable. To specify the location add the following command into your startup
+bash script, i.e., \$HOME/.bashrc:
+
+\texttt{export PATH=\installloc doxygen/bin:\$PATH}
+
+\paragraph{LaTeX} word processor
+
+LaTeX package is available on Taurus; as a module on some systems; from a
+distribution package management system, like Debian's APT; or as source directly
+from a tool developers webpage.
+
+To install FLEX through Debian's APT execute the following command:
+
+\texttt{sudo apt-get install texlive-full}
+

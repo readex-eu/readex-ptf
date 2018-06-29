@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Configuration>
+<!--  The following section specifies the dynamism results for each significant regions and across all phases  -->
+    <readex-dyn-detect>
+        <Intra-phase>
+            <SignificantRegion>
+                <name>myRegion</name>
+                <weight>0</weight>
+                <time_variation_reg>0</time_variation_reg>
+                <time_variation_phase>0</time_variation_phase>
+                <compute_intensity>0</compute_intensity>
+            </SignificantRegion>
+        </Intra-phase>
+        <Thresholds>
+            <weight>10</weight>
+            <time_variation>10</time_variation>
+            <compute_intensity_variation>50</compute_intensity_variation>
+            <granularity_significant_region>0.001</granularity_significant_region>
+        </Thresholds>
+        <Dynamism>
+            <dyn_time_variation>
+                <name>myRegion</name>
+            </dyn_time_variation>
+            <dyn_comIn_variation>
+                <name>myRegion</name>
+            </dyn_comIn_variation>
+        </Dynamism>
+    </readex-dyn-detect>
+<!--  This section specifies all the tuning parameter such as frequency, uncore frequency, no of threads and so on  -->
+    <tuningParameter>
+        <frequency>
+            <min_freq>1200000</min_freq>
+            <max_freq>2400000</max_freq>
+            <freq_step>500000</freq_step>
+            <default>2500000</default>
+        </frequency>
+        <uncore>
+            <min_freq>10</min_freq>
+            <max_freq>30</max_freq>
+            <freq_step>10</freq_step>
+            <default>30</default>
+        </uncore>
+        <openMPThreads>
+            <lower_value>1</lower_value>
+            <step>2</step>
+        </openMPThreads>
+    </tuningParameter>
+<!--  The following section specifies all the objective metrics  -->
+    <objectives>
+        <objective>Energy</objective>
+        <!--<objective>NormalizedEnergy</objective>-->
+        <!--<objective>Time</objective>-->
+        <!--<objective>NormalizedTime</objective>-->
+        <!--<objective>EDP</objective>-->
+        <!--<objective>NormalizedEDP</objective>-->
+        <!--<objective>ED2P</objective>-->
+        <!--<objective>NormalizedED2P</objective>-->
+        <!--<objective>CPUEnergy</objective>-->
+        <!--<objective>NormalizedCPUEnergy</objective>-->
+        <!--<objective>TCO</objective>-->
+        <!--<objective>NormalizedTCO</objective>-->
+        <!--<CostPerJoule>0.00000008</CostPerJoule>--> <!-- Euro -->
+        <!--<CostPerCoreHour>1.0</CostPerCoreHour>-->  <!-- Euro -->
+    </objectives>
+<!--  metrics section specifies energy metrics to be measured across nodes. In SearchAlgorithm section one has to specify at least one search algorithm for readex_tuning plugin  -->
+    <periscope>
+        <metricPlugin>
+            <name>hdeem_sync_plugin</name>
+            <!--<name>x86_energy_sync_plugin</name>-->
+        </metricPlugin>
+        <metrics>
+            <node_energy>hdeem/BLADE/E</node_energy>
+            <cpu0_energy>hdeem/CPU0/E</cpu0_energy>
+            <cpu1_energy>hdeem/CPU1/E</cpu1_energy>
+        </metrics>
+        <metricUnits>
+          <timeUnit>s</timeUnit>
+          <energyUnit>mj</energyUnit>
+          <currencyUnit>Euro</currencyUnit>
+        </metricUnits>
+        <searchAlgorithm>
+            <name>individual</name>
+            <!--<keep>2</keep>-->
+            <!--<name>exhaustive</name>-->
+            <!--<name>random</name>-->
+            <!--<samples>2</samples>-->
+        </searchAlgorithm>
+        <atp>
+            <searchAlgorithm>
+              <name>individual_atp</name>
+                <!--<name>exhaustive_atp</name>-->
+            </searchAlgorithm>
+        </atp>
+        <tuningModel>
+            <file_path>tuning_model.json</file_path>
+        </tuningModel>
+    </periscope>
+<!--  This section defines which substrate plugin to be used for readex_tuning plugin  -->
+    <scorep>
+        <tuningSubstrate>rrl</tuningSubstrate>
+    </scorep>
+</Configuration>

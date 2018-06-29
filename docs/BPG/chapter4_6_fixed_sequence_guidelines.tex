@@ -1,0 +1,17 @@
+\todo{TUM, Robert}
+
+\begin{itemize}
+	\item Selection of the meta-plugin
+	The fixed-sequence plugin executes all the plugins from the sequence while the adaptive-sequence plugin execute only plugins from the sequence that satisfy the given criteria.
+The adaptive-sequence plugin uses codified expert knowledge in the sense of performance properties to decide which plugins to run from the list of plugins requested.
+Therefore, the fixed sequence plugin should be used when the user wants to squeeze the maximum performance possible by the non-cross-product approach. On the other hand, the adaptive-sequence should be used when the user wants to get the optimal combination of optimization parameters just for optimization aspects with the biggest potential.
+The adaptive-sequence plugin should be used when we have limited time budget to get the optimum performance within that constraint. 
+
+
+	\item The plugins whose tuning parameters do not interfere and whose tuning scenarios are not prepared in the same way are the perfect candidates for fixed or adaptive-sequence plugins.
+The good candidates which can be combined with any other individual plugin are the CFS plugin and the DVFS plugin. For the fixed- and adaptive-sequence plugin we have used the CFS plugin, the DVFS plugin and the MPI parameters plugin. 
+
+	\item Ordering of the plugin execution does not matter as they are executed sequentially.  
+	
+	\item Meta-plugins do not have any search strategies. Search strategy of the plugins executed by the meta-plugin is used.
+\end{itemize}

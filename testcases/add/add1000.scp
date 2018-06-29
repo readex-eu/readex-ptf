@@ -1,0 +1,16 @@
+#!/bin/bash
+#PBS -j oe
+#PBS -S /bin/bash
+#PBS -l select=1024:ncpus=1
+#PBS -l walltime=0:30:00
+#PBS -N add1000
+#PBS -M gerndt@in.tum.de
+#PBS -m e
+. /etc/profile
+cd psc/test/add
+regsrv.ia64 50004& 
+sleep 10
+sudo /lrz/sys/lrz_perf/bin/lrz_perf_off_hlrb2
+export PSC_REGISTRY=$HOSTNAME:50004
+export PSC_APPL_BASEPORT=52300
+ ~/psc/frontend/frontend.ia64 --port=50050 --registry=$HOSTNAME:50004 --apprun=add --mpinumprocs=1000 --maxcluster=256 --maxfan=2 --strategy=StallCycleAnalysis --debug=1 --timeout=1200

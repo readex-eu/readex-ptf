@@ -1,0 +1,9 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+		targetNamespace="http://www.lrr.in.tum.de/Periscope" 
+		xmlns:psc="http://www.lrr.in.tum.de/Periscope" 
+		attributeFormDefault="unqualified" elementFormDefault="qualified">
+		
+	<xs:element name="L1Misses" type="xs:int"/>
+	<xs:element name="L2Misses" type="xs:int"/>
+	<xs:element name="L3Misses" type="xs:int"/>
+</xs:schema>

@@ -1,0 +1,99 @@
+%{
+#include <cstdio>
+#include <vector>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
+#include <iostream>
+#include <sstream>
+#include "AdaptiveSequencePlugin.h"
+
+//#include "lex.h"
+
+using namespace std;
+
+//#include "y.tab.h"  // to get the token types that we return
+
+// stuff from flex that bison needs to know about:
+extern "C" int yylex();
+extern "C" int yyparse();
+extern "C" FILE *yyin;
+extern int line_num;
+extern char *yytext;                        /* current token */
+extern "C" void yypush_buffer_state(int *);
+extern "C" int* yy_create_buffer(FILE*, int);
+
+ 
+void yyerror(const char *s);
+
+stringstream strs;
+int optionCt;
+AdaptiveSequencePlugin *asPlugin;
+
+%}
+
+//%defines "conf_parser.hpp"
+
+
+%union {
+  int ival;
+  float fval;
+  char *sval;
+}
+
+%start Specification
+
+%token PLUGINS
+%token THRESHOLD
+%token <ival> INT
+%token <fval> FLOAT
+%token <sval> STRING
+
+%%
+Specification: StmtList
+
+StmtList: Stmt StmtList
+        | Stmt
+        
+Stmt: ThresholdSpecification ';'
+    | PluginsSpecification ';'
+
+PluginsSpecification: PLUGINS '=' StringList
+
+ThresholdSpecification: THRESHOLD STRING '=' FLOAT { printf("Plugin %s threshold is %f\n", $2, $4); asPlugin->addPlugin(new std::string($2), $4); }
+                      | THRESHOLD STRING '=' INT { printf("Plugin %s threshold is %f\n", $2, (float)$4); asPlugin->addPlugin(new std::string($2), (float)$4); }
+
+StringList: STRING ',' StringList { printf("Plugin %s threshold is not specified. Threshold set to default value, i.e., 10.\n", $1); asPlugin->addPlugin(new std::string($1), 10); }
+          | STRING                { printf("Plugin %s threshold is not specified. Threshold set to default value, i.e., 10.\n", $1); asPlugin->addPlugin(new std::string($1), 10); }
+
+%%
+
+void parseConfig(const char *filename, AdaptiveSequencePlugin *plugin) {
+  asPlugin = plugin;
+  // open a file handle to a particular file:
+  psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "Opening file: %s\n", filename);
+  FILE *myfile = fopen(filename, "r");
+  // make sure it's valid:
+  if (!myfile) {
+    cout << "I can't open file!" << endl;
+    exit(-1);
+  }
+  // set lex to read from it instead of defaulting to STDIN:
+  yyin = myfile;
+
+  // parse through the input until there is no more:
+  do {
+    yyparse();
+    if (feof(yyin) && !feof(myfile)) {
+      yyin = myfile;
+      //printf("Switching back to original file\n");fflush(stdout);
+    }
+  } while (!feof(myfile));
+  fclose (myfile);
+}
+
+void yyerror(const char *s) {
+  cout << "Parse error on line " << line_num << "!  Message: " << s << "<" << yytext << ">" <<endl;
+  // might as well halt now:
+  abort();
+}

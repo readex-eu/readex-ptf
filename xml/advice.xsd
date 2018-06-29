@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+  <xsd:element name="Advices">
+    <xsd:complexType>
+      <xsd:sequence minOccurs="1" maxOccurs="unbounded">
+        <xsd:element name="Advice" type="AdviceType" minOccurs="1" maxOccurs="unbounded"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:complexType name="AdviceType">
+    <xsd:sequence minOccurs="1" maxOccurs="unbounded">
+      <xsd:element name="PluginName" type="xsd:string"/>
+      <xsd:element name="BestScenarios" type="ScenarioResultList"/>
+      <xsd:element name="SearchPath" type="ScenarioResultList"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="ScenarioResultList">
+    <xsd:sequence>
+      <xsd:element name="ScenarioResult" type="ScenarioResultType" minOccurs="1" maxOccurs="unbounded"/>
+      <xsd:element name="BestSignificantRegionScenarios" type="BestSignificantRegionScenariosType" minOccurs="1" maxOccurs="unbounded"/>
+	</xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="ScenarioResultType">
+    <xsd:sequence>
+      <xsd:element name="Scenario" type="ScenarioType"/>
+      <xsd:element name="Result" type="ResultType"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="ScenarioType">
+    <xsd:sequence> 
+      <xsd:element name ="ID" type="xsd:integer"/>
+      <xsd:element name ="Description" type="xsd:string"/>
+      <xsd:element name ="Region" type="RegionType"/>
+      <xsd:element name="TuningSpecification" type="TuningSpecificationType"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <xsd:complexType name="BestSignificantRegionScenariosType">
+    <xsd:sequence>
+      <xsd:element name="SignificantRegionScenario" type="SignificantRegionScenarioType"/> 
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="SignificantRegionScenarioType">
+    <xsd:sequence>
+      <xsd:element name="ID" type="xsd:integer"/>
+      <xsd:element name="Region" type="RegionType"/>
+      <xsd:element name="TuningParameters" type="TuningParametersType"/>
+      <xsd:element name="Result" type="ResultType"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="TuningParametersType">
+    <xsd:sequence>
+      <xsd:element name="TuningParameter" type="TuningParameterType"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="TuningSpecificationType">
+    <xsd:sequence> 
+      <xsd:element name="Variant" type="VariantType"/> 
+      <xsd:element name="VariantContext" type="VariantContextType"/> 
+      <xsd:element name="Ranks" type="RanksType"/> 
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="VariantType">
+    <xsd:sequence> 
+      <xsd:element name="TuningParameter" type="TuningParameterType" minOccurs="1" maxOccurs="unbounded"/> 
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="VariantContextType">
+    <xsd:sequence> 
+      <xsd:element name ="Type" type="xsd:string"/>
+      <xsd:element name ="Region" type="RegionType" minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name ="File" type="xsd:string" minOccurs="0" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="RanksType">
+    <xsd:sequence> 
+      <xsd:element name ="Type" type="xsd:string"/>
+      <xsd:element name ="Rank" type="xsd:decimal" minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name ="Range" type="RangeType" minOccurs="0" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="RangeType">
+    <xsd:sequence> 
+      <xsd:element name="Start" type="xsd:decimal"/>
+      <xsd:element name="End" type="xsd:decimal"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="ResultType">
+    <xsd:sequence> 
+      <xsd:element name="Description" type="xsd:string"/> 
+      <xsd:element name="Value" type="xsd:decimal"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="RegionType">
+    <xsd:sequence> 
+      <xsd:element name ="FileName" type="xsd:string"/>
+      <xsd:element name ="FirstLine" type="xsd:integer"/>
+      <xsd:element name ="LastLine" type="xsd:integer"/>
+      <xsd:element name ="RegionID" type="xsd:string"/>
+    </xsd:sequence>		
+  </xsd:complexType>
+
+  <xsd:complexType name="TuningParameterType">
+    <xsd:sequence>
+      <xsd:element name="Name" type="xsd:string"/>
+      <xsd:element name="Value" type="xsd:decimal"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+</xsd:schema>

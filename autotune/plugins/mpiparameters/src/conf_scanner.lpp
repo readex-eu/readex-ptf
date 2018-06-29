@@ -1,0 +1,143 @@
+
+equals	([ \t]*)?=([ \t]*)?
+endl	([ \t])*?";"([ \t])*?
+letters ([A-Z][a-z][A-z])*
+word	[a-zA-Z0-9_]+
+number  [0-9_]+
+comma	([ \t]*)?([,]){1}([ \t]*)?
+colon	([ \t]*)?(:)([ \t]*)?
+endl2	([ \t])*?";"([ \t])*?([\n])
+endl3	([\n])
+
+%{
+#include "conf_parser.hpp"
+#include <iostream>
+
+#define ECHO fwrite(yytext, yyleng, 1, yyout)
+using namespace std;
+#define YY_DECL extern "C" int yylex()
+
+int lineNum = 1;
+int prevState ; // This variable is necessary in order to get to previous states
+%}
+
+
+%option noyywrap
+%x VARS_IBM
+%x VARS_INTEL
+%x VARS_OPENMPI 
+%x MPI_TYPE
+%x ERROR END
+%x PARSE_XBYTES PARSE_YES_NO PARSE_XBYTES_COMMA PARSE_BYTES
+%x PARSE_INTERVAL PARSE_WAIT_MODE PARSE_INTEGER PARSE_TASK_AFFINITY TAFFNITY_CPU
+%x B_TYPE B_TYPE_COMMA
+
+%x VARS_EXPORT VALUES INTERVAL OPERAND COMMENT V
+
+%%
+[ \t]+         									;
+MPIPO_BEGIN([ \t])?								{ BEGIN (MPI_TYPE); return MPIPO_BEGIN;}
+({word})										{ cout << "--\n[ERROR]: sentence '" << yytext << "' not recognized on line: " << lineNum << endl; exit(0);}
+({endl3})										{ ++lineNum; }
+
+<MPI_TYPE>[ \t]+								;		
+<MPI_TYPE>({letters})							{ cout << "--\n[ERROR]: parameter '" << yytext << "' not recognized \n" << lineNum; exit(0);		}
+<MPI_TYPE>(ibm|IBM)([ \t]+)?  					{ prevState = VARS_IBM; 	BEGIN (VARS_IBM); 				return MPI_IBM; 				}
+<MPI_TYPE>(openmpi|OPENMPI)([ \t]+)?			{ prevState = VARS_EXPORT; 	BEGIN (VARS_EXPORT); 			return MPI_OPENMPI;				}
+<MPI_TYPE>(intel|INTEL)([ \t]+)?				{ prevState = VARS_EXPORT; 	BEGIN (VARS_EXPORT); 			return MPI_INTEL;				}
+<MPI_TYPE>([ \t])*?([\n])						{ prevState = VARS_EXPORT; BEGIN (VARS_EXPORT);	return VARS_EXP;  	} // [NOTE]: Cannot use the same name inside BEGIN and return
+<MPI_TYPE>({word})								{ cout << "--\n[ERROR]: parameter '" << yytext << "' not recognized \n" << lineNum; exit(0);}
+<MPI_TYPE>({endl3})								{ ++lineNum; }
+
+<VARS_IBM>(MP_USE_BULK_XFER|use_bulk_xfer)({equals})			{ BEGIN(PARSE_YES_NO); 		return MP_USE_BULK_XFER;		}
+<VARS_IBM>(MP_BULK_MIN_MSG_SIZE|bulk_min_msg_size)({equals})	{ BEGIN(PARSE_INTERVAL); 	return MP_BULK_MIN_MSG_SIZE;	}
+<VARS_IBM>(MP_BUFFER_MEM|buffer_mem)({equals})					{ BEGIN(PARSE_INTERVAL); 	return MP_BUFFER_MEM; 			}
+<VARS_IBM>(MP_EAGER_LIMIT|eager_limit)({equals})				{ BEGIN(PARSE_INTERVAL); 	return MP_EAGER_LIMIT; 			}
+<VARS_IBM>(MP_CC_SCRATCH_BUF|cc_scratch_buf)({equals})			{ BEGIN(PARSE_YES_NO);	 	return MP_CC_SCRATCH_BUF; 		}
+<VARS_IBM>(MP_SINGLE_THREAD|single_thread)({equals})			{ BEGIN(PARSE_YES_NO);	 	return MP_SINGLE_THREAD; 		}
+<VARS_IBM>(MP_WAIT_MODE|wait_mode)({equals})					{ BEGIN(PARSE_WAIT_MODE);	return MP_WAIT_MODE; 			}
+<VARS_IBM>(MP_POLLING_INTERVAL|polling_interval)({equals})		{ BEGIN(PARSE_INTERVAL);	return MP_POLLING_INTERVAL; 	}
+<VARS_IBM>(MP_CSS_INTERRUPT|css_interrupt)({equals})			{ BEGIN(PARSE_YES_NO);		return MP_CSS_INTERRUPT; 		}
+<VARS_IBM>(MP_HINTS_FILTERED|hints_filtered)({equals})			{ BEGIN(PARSE_YES_NO);		return MP_HINTS_FILTERED; 		}
+<VARS_IBM>(MP_MSG_ENVELOPE_BUF|msg_envelope_buf)({equals})		{ BEGIN(PARSE_INTERVAL); 	return MP_MSG_ENVELOPE_BUF; 	}
+<VARS_IBM>(MP_RETRANSMIT_INTERVAL|retransmit_interval)({equals}) { BEGIN(PARSE_INTERVAL);	return MP_RETRANSMIT_INTERVAL;	}
+<VARS_IBM>(MP_THREAD_STACKSIZE|thread_stacksize)({equals})		{ BEGIN(PARSE_INTERVAL); 	return MP_THREAD_STACKSIZE;		}
+<VARS_IBM>(MP_ACK_THRESH|ack_thresh)({equals})					{ BEGIN(PARSE_INTEGER);		return MP_ACK_THRESH;			}
+<VARS_IBM>(MP_IO_BUFFER_SIZE|io_buffer_size)({equals})			{ BEGIN(PARSE_INTERVAL); 	return MP_IO_BUFFER_SIZE;		}
+<VARS_IBM>(MP_IO_ERRLOG|io_errlog)({equals})					{ BEGIN(PARSE_YES_NO); 		return MP_IO_ERRLOG;			}
+<VARS_IBM>(MP_REXMIT_BUF_SIZE|rexmit_buf_size)({equals})		{ BEGIN(PARSE_INTERVAL); 	return MP_REXMIT_BUF_SIZE; 		}
+<VARS_IBM>(MP_REXMIT_BUF_CNT|rexmit_buf_cnt)({equals})			{ BEGIN(PARSE_INTERVAL); 	return MP_REXMIT_BUF_CNT;		}
+<VARS_IBM>(MP_PE_AFFINITY|pe_affinity)({equals})				{ BEGIN(PARSE_YES_NO);		 return MP_PE_AFFINITY;			}
+<VARS_IBM>(MP_TASK_AFFINITY|task_affinity)({equals})			{ BEGIN(PARSE_TASK_AFFINITY);return MP_TASK_AFFINITY;		}
+<VARS_IBM>(AUTO_EAGER_LIMIT|auto_eager_limit)({endl})			{ return EXP_AUTO_EAGER_LIMIT;	}
+<VARS_IBM>MPIPO_END												{ cout << endl << "--\n[INFO]: PARSE FINISHED" << endl << endl; return MPIPO_END;}
+<VARS_IBM>({endl3})												{ ++lineNum; }
+<VARS_IBM>({word})												{ cout << "--\n[ERROR]: sentence '" << yytext << "' not recognized on line: " << lineNum << endl; exit(0);}
+	
+	<PARSE_TASK_AFFINITY>(CPU|cpu)				{ return CPU; 		}
+	<PARSE_TASK_AFFINITY>(CORE|core)			{ return CORE; 		}
+	<PARSE_TASK_AFFINITY>(MCM|mcm)				{ return MCM; 		}
+	<PARSE_TASK_AFFINITY>({colon})				{ return COLON; 	}
+	<PARSE_TASK_AFFINITY>[0-9]*					{ yylval.ival = atoi(yytext); return IVAL; }
+	<PARSE_TASK_AFFINITY>-1						{ return DISABLE; 	}
+	<PARSE_TASK_AFFINITY>({comma})				{ return COMMA; 	}
+	<PARSE_TASK_AFFINITY>({endl})				{ ++lineNum; BEGIN (VARS_IBM); /*We now return to the main exec*/ }
+	<PARSE_TASK_AFFINITY>({endl2})				{ ++lineNum; BEGIN (VARS_IBM); }
+	<PARSE_TASK_AFFINITY>({word})					{ cout << "--\n[ERROR]: value '" << yytext << "' not recognized for TASK_AFFINITY on line: " << lineNum << endl; exit(0);}
+	
+	<PARSE_WAIT_MODE>(nopoll|NOPOLL)			{ yylval.sval = strdup(yytext); return SVAL; }
+	<PARSE_WAIT_MODE>(poll|POLL)				{ yylval.sval = strdup(yytext); return SVAL; }
+	<PARSE_WAIT_MODE>(sleep|SLEEP)				{ yylval.sval = strdup(yytext); return SVAL; }
+	<PARSE_WAIT_MODE>(yield|YIELD)				{ yylval.sval = strdup(yytext); return SVAL; }
+	<PARSE_WAIT_MODE>({endl})					{ ++lineNum; BEGIN (VARS_IBM); }
+	<PARSE_WAIT_MODE>({endl2})					{ ++lineNum; BEGIN (VARS_IBM); }
+	<PARSE_WAIT_MODE>({comma})					{ return COMMA; }
+	<PARSE_WAIT_MODE>({word})					{ cout << "--\n[ERROR]: value '" << yytext << "' not recognized for WAIT_MODE on line: " << lineNum << endl; exit(0);}
+	
+	<PARSE_INTERVAL>[0-9]*(k|K|M|G)?			{ yylval.sval = strdup(yytext); return SVAL;  }
+	<PARSE_INTERVAL>({colon})					{ return COLON; }
+	<PARSE_INTERVAL>({endl})					{ ++lineNum; BEGIN (prevState); return ENDL; }
+	<PARSE_INTERVAL>({endl2})					{ ++lineNum; BEGIN (prevState); return ENDL; }
+	<PARSE_INTERVAL>({comma})					{ return COMMA; }
+	<PARSE_INTERVAL>({word})					{ cout << "--\n[ERROR]: value '" << yytext << "' not recognized on line: " << lineNum << endl; exit(0);}
+	
+	<PARSE_YES_NO>(yes|no|YES|NO)				{ yylval.sval = strdup(yytext); /*++lineNum*/; return SVAL; }
+	<PARSE_YES_NO>({endl})						{ ++lineNum; BEGIN (prevState) /*We now return to the main exec*/; }
+	<PARSE_YES_NO>({endl2})						{ ++lineNum; BEGIN (prevState) /*We now return to the main exec*/; }
+	<PARSE_YES_NO>[ \t]*						;
+	<PARSE_YES_NO>({comma})						{ return COMMA; }
+	<PARSE_YES_NO>({word})						{ cout << "--\n[ERROR]: value '" << yytext << "' not recognized on line: " << lineNum << " this must be a yes/no value" << endl; exit(0);}
+	<PARSE_YES_NO>({number})					{ cout << "--\n[ERROR]: value '" << yytext << "' not recognized on line: " << lineNum << " this must be a yes/no value" << endl; exit(0);}
+
+<VARS_INTEL>.									{ cout << "Intel in Flex\n"; }
+<VARS_INTEL>({endl})							{ BEGIN (VARS_INTEL); return ENDL;}
+
+<VARS_OPENMPI>.									{ cout << "Openmpi in Flex\n"; }
+
+<VARS_IBM,VARS_EXPORT>SEARCH({equals})			{ BEGIN(VALUES);	return EXP_SEARCH;			}
+<VARS_IBM,VARS_EXPORT>INDIVIDUAL_KEEP({equals}) { BEGIN(VALUES);	return EXP_IND_KEEP;		}
+<VARS_IBM,VARS_EXPORT>SAMPLE_COUNT({equals}) 	{ BEGIN(VALUES);	return EXP_SAMP_COUNT;		}
+<VARS_IBM,VARS_EXPORT>GDE3_POP_SIZE({equals}) 	{ BEGIN(VALUES);	return EXP_GDE3POPSIZE;		}
+<VARS_IBM,VARS_EXPORT>=							{ BEGIN(VALUES); 	return VALUESBEGIN;			}
+<VARS_IBM,VARS_EXPORT>MPIPO_END					{ yy_flush_buffer(YY_CURRENT_BUFFER); BEGIN(INITIAL); return MPIPO_END; }
+<VARS_IBM,VARS_EXPORT>[a-zA-Z_]+				{ yylval.sval = strdup(yytext);	return STRING; 	}
+<VARS_IBM,VARS_EXPORT>#							{ BEGIN(COMMENT); }
+<VARS_IBM,VARS_EXPORT>({endl})					{ BEGIN(prevState); return ENDL; }
+	<VALUES,INTERVAL>[0-9]+						{ yylval.ival = atoi(yytext); 	return INT; 	}
+	<VALUES,INTERVAL>({endl})					{ ++lineNum; BEGIN(prevState);				return ENDVALS; }
+	<VALUES,INTERVAL>({endl2})					{ ++lineNum; BEGIN(prevState);	return ENDVALS; }
+	<VALUES,INTERVAL>({colon})					{ BEGIN(INTERVAL); 				return INTERVALSEP; }
+	<VALUES>({comma})							{ BEGIN(VALUES); 				return VALSEP; 		}
+
+	<INTERVAL>\*								{ BEGIN(OPERAND); 	return INCMUL; 				}
+	<INTERVAL>\+								{ BEGIN(OPERAND); 	return INCSUM; 				}
+	<OPERAND>[0-9]+								{ yylval.ival = atoi(yytext); 	BEGIN(INTERVAL); 	return INT; 	}
+	<VALUES>[a-zA-Z0-9_]+						{ yylval.sval = strdup(yytext); BEGIN(VALUES); 		return STRING;	}
+	<VARS_EXPORT,VALUES>({endl})				{ ++lineNum; return ENDL; }
+	<VARS_EXPORT,VALUES>({endl2})				{ ++lineNum; return ENDL; }
+
+	<COMMENT>\n									{ ++lineNum; BEGIN(prevState); }
+	<COMMENT>.									;
+
+<ERROR>.										{ exit(0); }
+%%

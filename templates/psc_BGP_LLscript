@@ -1,0 +1,14 @@
+# @ job_name = Periscope
+# @ comment = "Performance analysis with Periscope"
+# @ error = $(job_name).$(host).$(jobid).out
+# @ output = $(job_name).$(host).$(jobid).out
+# @ environment = COPY_ALL;
+# @ wall_clock_limit = 00:30:00
+# @ notification = never
+# @ notify_user = 
+# @ job_type = bluegene
+# @ bg_size = 128 
+# @ queue
+echo "================================================================="
+psc_regsrv &
+psc_frontend --apprun=./add --mpinumprocs=128 --bg-mode=SMP --strategy=MPI --sir=add.sir 

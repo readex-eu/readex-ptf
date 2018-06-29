@@ -1,0 +1,57 @@
+\documentclass[a4paper, 11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[lmargin=3cm]{geometry}
+\usepackage{amssymb}
+\usepackage{verbatim}
+
+\hyphenation{FORTRAN NEKBONE}
+
+%Inlucde common settings
+\input{../BPG/deliverables-config.tex}
+
+\newenvironment{code}%
+{
+\addtolength{\leftskip}{0.5cm}}%
+{
+
+}
+
+\begin{document}
+
+\title{\includegraphics[width=4cm]{./images/Ptf_LogoBlau}\\ \vspace{1cm}
+\textsf{\bf \huge Best Practice Guide }\\
+       \normalsize PTF Version: 1.1\\
+       }
+\author{AutoTune Partners}
+\date{14.04.2015}
+\maketitle
+\newpage
+\tableofcontents
+
+\newpage
+\section{Introduction}
+
+\label{sec:intro}
+\input{../BPG/chapter1_intro.tex}
+\clearpage
+
+\section{PTF in the Tuning Cycle}
+\label{sec:chapter2}
+\input{../BPG/chapter2_tuning_lifecycle.tex}
+\clearpage
+
+%------------------------- Subsection for each plugin -------------------------%
+\section{Best Practice on how to use PTF: A Walkthrough}
+\label{sec:chapter3}
+\input{../BPG/chapter3_ptf_guidelines.tex}
+\clearpage
+
+\section{Best Practice on how to use the PTF Tuning Plugins}
+\label{sec:chapter4}
+\input{../BPG/chapter4_general_guidelines_plugins.tex}
+\clearpage
+
+\bibliography{References}{}
+\bibliographystyle{plainnat}
+
+\end{document}

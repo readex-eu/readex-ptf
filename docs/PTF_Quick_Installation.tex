@@ -1,0 +1,303 @@
+\documentclass[12pt]{article}
+
+\usepackage{geometry}
+\geometry{a4paper}
+\usepackage{hyperref}
+
+\begin{document}
+
+\begin{titlepage}\centering
+\vspace*{\fill}
+\Huge \textbf{PTF Quick Installation on Taurus }\\
+{\large \today}\\[3cm] % Date, change the \today to a set date if you want to be precise
+\vspace*{\fill}
+\end{titlepage}
+\clearpage
+\newpage
+
+\section{Load modules}
+
+This quick installation guide will describe how to install the READEX versions of PTF and Score-P on Taurus.
+
+The following modules should be loaded in your .bashrc:
+
+\begin{verbatim}
+  module use /projects/p_readex/modules
+  module load svn
+  module load git
+  module load ace
+  module load boost/1.60.0-gnu5.3
+  module load gcc/5.3.0
+  module load bullxmpi
+  module load scorep-dev/05
+  module load flex/2.5.39 bison/3.0.4
+  module load papi/5.4.3
+  module load cube/cube4.3.3-gcc5.3-without-gui
+  module load cereal/1.2.1
+  module load intel/2016.2.181
+  module load cmake
+  
+  export LD_LIBRARY_PATH=/sw/global/compilers/gcc/5.3.0/lib64:$LD_LIBRARY_PATH
+
+\end{verbatim}
+
+\section{Installation of Score-P}
+
+This is how to install the READEX branch of Score-P. It supports the following extensions:
+\emph{Generic Configuration Requests} used to configure tuning actions during DTA and \emph{RTS support for DTA} in the Online Access Interface, \emph{substrate plugin support} for the tuning substrate plugin, and \emph{cube performance tuple support} for {\tt readex-dyn-detect}. The installation requires access to the Score-P repository and the cube repository.
+
+
+\begin{enumerate}
+  \item Checkout the Score-P READEX branch.
+
+  \begin{verbatim}
+  svn co https://silc.zih.tu-dresden.de/svn/silc-root/branches/
+  TRY_READEX_online_access_call_tree_extensions Score-P
+  \end{verbatim}
+
+  \item Build Score-P
+
+  \begin{verbatim}
+  cd Score-P
+  ./bootstrap
+  mkdir build
+  cd build
+
+  ../configure
+    --prefix=$HOME/install/scorep
+    --enable-debug
+    --enable-shared
+    --without-gui
+    --with-nocross-compiler-suite=intel
+    --enable-backend-test-runs
+    --with-mpi=bullxmpi
+    --with-papi-header=$PAPI_INC
+    --with-papi-lib=$PAPI_LIB
+    
+    make all -j 32
+    make install
+  \end{verbatim}
+
+  \item Define environment variables in your {\tt .bashrc} file.
+
+  \begin{verbatim}
+  export SCOREP_ROOT=$HOME/install/scorep
+  export SCOREP_INC=$SCOREP_ROOT/include
+  export SCOREP_LIB=$SCOREP_ROOT/lib
+
+  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$SCOREP_LIB
+  export PATH=$PATH:$SCOREP_ROOT/bin
+  \end{verbatim}
+
+\end{enumerate}
+
+\section{Installation of PTF and the Tuning Substrate for Score-P}
+
+\begin{enumerate}
+\item Clone the READEX branch of PTF with the following command:
+
+\begin{verbatim}
+  git -c http.sslVerify=false clone -b  readex
+  https://periscope.in.tum.de/git/Periscope.git Periscope
+\end{verbatim}
+
+\item Build Periscope, scorep-autofilter, readex-dyn-detect, and the Score-P tuning substrate plugin.
+
+\begin{verbatim}
+  cd Periscope
+  ./bootstrap
+  mkdir build
+  cd build
+  ../Periscope/configure
+    --enable-ace 
+    --with-ace-include=$ACE_BASE
+    --with-ace-lib=$ACE_LIBDIR
+    --enable-boost
+    --with-boost-include=$BOOST_BASE/include
+    --with-boost-lib=$BOOST_LIBDIR
+    --enable-cube 
+    --with-cube-include=$CUBE_INC 
+    --with-cube-lib=$CUBE_LIB
+    --enable-scorep
+    --with-scorep-include=$SCOREP_INC
+    --with-scorep-lib=$SCOREP_LIB
+    --enable-cereal
+    --with-cereal-include=$CEREAL_INC
+    --prefix=$HOME/install/Periscope
+    --enable-developer-mode
+    --with-starter=slurm
+  make install -j 16
+\end{verbatim}
+
+\item Define environment variables in your {\tt .bashrc} file.
+
+  \begin{verbatim}
+  export PERISCOPE_ROOT=$HOME/install/Periscope
+  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PERISCOPE_ROOT/lib
+  export PATH=$PATH:$PERISCOPE_ROOT/bin
+  \end{verbatim}
+
+\end{enumerate}
+
+
+\newpage
+\section{Perform dynamism analysis with {\tt readex-dyn-detect}}
+
+\subsection{Instrument your program}
+
+\begin{enumerate}
+  \item Run your code without instrumentation to determine a baseline.
+  \item Instrument your code with ScoreP.
+  \item Run the instrumented version.
+  \item Apply scorep-autofilter with a threshold of 1 ms granularity.
+  \item Give a name of the filter output file without extension
+  \begin{verbatim}
+  scorep-autofilter -t 0.1 -f autfilter scorep-.../profile.cubex
+  \end{verbatim}
+  \item Add the filter file to your batch script
+  \begin{verbatim}
+  export SCOREP_FILTERING_FILE=autfilter.filt
+  \end{verbatim}
+  \item Rerun the instrumented version and check the instrumentation overhead.
+\end{enumerate}
+The \texttt{scorep-autofilter} tool filters the profile output, scorep-.../profile.cubex of the application based on given threshold value and output filter file name by the user. It sets the threshold of 100ms for granularity and generates the valid filter file given with the -f autofilter option. This autofilter.filt  will be used as filter file on the next run of the instrumented application.
+\subsection{Analyze the application dynamism}
+
+\begin{enumerate}
+  \item Instrument the phase region.
+  \item Switch on tuple support for cube and PAPI measurements in your batch file.
+  \begin{verbatim}
+  export SCOREP_PROFILING_FORMAT=cube_tuple
+  export SCOREP_METRIC_PAPI=PAPI_TOT_INS,PAPI_L3_TCM
+  export SCOREP_FILTERING_FILE=autfilter.filt
+  \end{verbatim}
+  \item Rerun the application
+  \item Determine the available dynamism with {\tt readex-dyn-detect}.
+  \begin{verbatim}
+  readex-dyn-detect -t 0.001 -p PhaseRegion -c 20 -v 10 -w 10 
+  scorep-.../profile.cubex
+  \end{verbatim}
+\end{enumerate}
+
+The \texttt{readex-dyn-detect} tool reads from scorep-.../profile.cubexfile after second run of the instrumented application. It takes the granularity of 1ms to eliminate fine granular regions having granularity below the threshold. The user define the name of the progress loop with -p phaseRegion to help the tool to identify the phase region followed by the threshold for the compute instensity metric deviation as -c 20. The user also provides the threshold of the time variation 10\% with -v 10 and 10\%, the threshold for the region weight with respect to the phase execution time.
+
+\subsubsection{Output}
+
+\begin{verbatim}
+Reading profile.cubex... Done.
+Granularity threshold: 0.001000
+There is a phase region
+
+Granularity of PhaseRegion: 516.298277
+Granularity of LagrangeLeapFrog: 445.382542
+Granularity of LagrangeNodal: 192.892307
+...
+...
+...
+Granularity of CalcTimeConstraintsForElems: 4.940597
+Granularity of CalcCourantConstraintForElems: 0.290956
+Granularity of CalcHydroConstraintForElems: 0.058161
+\end{verbatim}
+
+The above output helps the user to understand the granularity of all the regions of a phase region having granularity greater than 0.001.
+
+Next the tool displays the names of the non-nested significant regions after running the detection algorithm:
+
+\begin{verbatim}
+Significant regions are: 
+    CalcCourantConstraintForElems 
+    CalcFBHourglassForceForElems 
+    CalcKinematicsForElems 
+    CalcMonotonicQGradientsForElems 
+    CalcMonotonicQRegionForElems 
+    EvalEOSForElems 
+    IntegrateStressForElems 
+\end{verbatim}
+
+The tool also outputs the name of the significant region, min(t) as minimum execution time, max(t) as maximum execution time, time deviation relative to the mean execution time for each significant region as \%, compute intensity as the ration of \# of total retired operation to the \# of L3 cache misses, weight as \% of the execution time of the region to the phase execution time. These information will be shown as below: 
+
+\begin{verbatim}
+Significant region information
+==============================
+Region name                  Min(t)     Max(t)     Time Dev.(%Reg) Ops/L3miss      Weight(%Phase) 
+CalcCourantConstraintForE    0.004        0.286        101.5           105                1 
+CalcFBHourglassForceForEl    9.392        9.413          0.0            53               14 
+CalcKinematicsForElems      10.326       10.344          0.0           330               15 
+CalcMonotonicQGradientsFo   10.311       10.318          0.0           153               15 
+CalcMonotonicQRegionForEl    0.023        1.550          0.0            71                7 
+EvalEOSForElems              0.009        7.171          0.0           259               13 
+IntegrateStressForElems      9.015        9.030          0.0           181               13 
+\end{verbatim}
+
+Next, the tool shows the information of the progress loop which is called \textit{phase}.
+
+\begin{verbatim}
+Phase information
+=================
+Min           Max         Mean        Dev.(% Phase)      Dyn.(% Phase)        
+68.4437       68.4863     68.4585     0                   0.0622793       
+\end{verbatim}  
+The above information across the phase depicts the minimum , maximum, mean values. \texttt{Dev.(\% Phase)} is the deviation of the phase with respect to the mean execution time of the phase and \texttt{Dyn.(\% Phase)} is the variation of minimum and maximum execution time as \% relative to the mean execution time of the phase. 
+\begin{verbatim}
+SUMMARY:   
+========
+
+No inter-phase dynamism
+
+No intra-phase dynamism due to time variation
+
+Intra-phase dynamism due to variation in the compute intensity of the 
+following important significant regions:
+     CalcFBHourglassForceForElems 
+     CalcKinematicsForElems    
+     CalcMonotonicQGradientsForElems 
+     EvalEOSForElems           
+     IntegrateStressForElems   
+\end{verbatim}
+
+The tool also gives a decision whether there is inter-phase dynamim. The decision is taken if the application has high variation of the execution time across all the phases. Here \texttt{Dev.(\% Phase)} value is less than the given threshold 10. So the tool shows no inter-phase dynamism.
+
+\texttt{readex-dyn-detect} tool also shows the region names if the variation of the execution time is greater than 10\% and it's weight is larger than 10\%. Here there is no intra-phase dynamism due to lower value of time variation.
+
+At the end, the tools shows the name of the significant region who have the weight above the given weight threshold 10\% and the deviation of the compute intensity  larger than 20\%.
+
+
+\section{Run DVFS tuning on Taurus}
+
+\begin{enumerate}
+  \item Add energy measurement support, the PTF tuning substrate plugin, and the control plugins to your batch file. The control plugins for the number of OMP threads and the clock frequency are provided by a module as the metric plugin for energy measurements with Hdeem.
+  \begin{verbatim}
+  module load  scorep-hdeem/sync-2016-07-14-hdeem2.2.2-xmpi-gcc5.3
+  export SCOREP_METRIC_HDEEM_SYNC_PLUGIN_CONNECTION="INBAND"
+  export SCOREP_METRIC_HDEEM_SYNC_PLUGIN_VERBOSE="WARN"
+  export SCOREP_METRIC_HDEEM_SYNC_PLUGIN_STATS_TIMEOUT_MS=1000
+
+  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PERISCOPE_ROOT/lib/
+  module use /projects/p_readex/modules/
+  module load scorep_plugins/control_plugins
+
+  export SCOREP_SUBSTRATE_PLUGINS='tuning'
+  // or export SCOREP_SUBSTRATE_PLUGINS='rrl'
+  export SCOREP_TUNING_PLUGINS=OpenMPTP,cpu_freq_plugin
+  \end{verbatim}
+
+  \item Reduce measurement overhead by switching off measurements for all MPI functions except environment functions.
+  \begin{verbatim}
+  export SCOREP_MPI_ENABLE_GROUPS=ENV
+  \end{verbatim}
+  \item Switch on DVFS tuning for the Periscope frontend.
+  \begin{verbatim}
+  psc_frontend  --apprun=bt-mz.C.4
+     --mpinumprocs=4 --ompnumthreads=8
+     --phase=PhaseRegion
+     --tune=dvfs_taurus
+       --min_freq=1200000
+       --max_freq=2500000
+       --freq_step=100000
+     --info=2
+     --selective-info=AutotuneAll,AutotunePlugins
+  \end{verbatim}
+\end{enumerate}
+
+
+\end{document} 

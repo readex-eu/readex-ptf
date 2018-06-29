@@ -1,0 +1,688 @@
+\documentclass[11pt,a4paper, oneside]{book} %twoside,
+
+\usepackage{hyperref}
+\usepackage{color}
+%\usepackage{amssymb}
+%Used for tildes urls
+\usepackage{url}
+%Used for longtables
+\usepackage{longtable}
+\usepackage{graphicx}
+
+
+%Used for having noidentation for paragraphs
+%and vertical spacing between them
+\usepackage{parskip}
+
+\usepackage{listings}
+	
+\newcommand{\draft}[1]{\textcolor{blue}{#1}}
+\newcommand{\hint}[1]{\textcolor{OliveGreen}{[{\it#1}]}}
+\newcommand{\fishy}[1]{\textcolor{red}{#1}}
+\newcommand{\comment}[1]{\marginpar{\scriptsize{\textcolor{red}{#1}}}}
+\newenvironment{code}%
+{
+\addtolength{\leftskip}{0.5cm}}%
+{
+
+}
+
+\begin{document}
+
+\title{\includegraphics[width=4cm]{../images/Ptf_LogoBlau}\\ \vspace{1cm}
+\textsf{\bf \huge CFS Plugin User's Guide }\\
+       \normalsize PTF Version: 1.1\\
+       CFS Plugin Version: 2.0}
+\author{Anca Berariu}
+\date{13.04.2015}
+
+\maketitle
+\tableofcontents
+
+\chapter{Introduction}
+
+One of the main targets in performance optimization is the minimization of the execution time of an application. Besides the choice of the implemented algorithm and the way the program is written, another important factor is represented by the \textit{compiler}. The compiler generates the actual executed code, the \textit{machine code}, from the high-level source code.
+
+Nowadays, compilers apply a large number of program transformations to generate the best code for a given architecture. Such transformations are, for example: loop interchange, data prefetching, vectorization, or software pipelining. While the compiler ensures the correctness of the transformations, it is very difficult to predict the \textit{performance impact} and also to select the right sequence of transformations. They rather provide a long list of compiler flags (and even directives) and expect the programmer to guide the compiler in the optimization phase by choosing the right flags and combinations.
+
+Due to the large number of flags and the required background knowledge in the compiler transformations and their interaction with the application and the hardware, it is very difficult for the programmer to select the best flags and to guide the compiler by inserting directives. It is thus often the case, that only the standard flags O2 and O3 are used to change the approach of the compiler optimization.
+
+The CFS Plugin automatically searches for the best combination of compiler flags to be used when building a particular application. The programmer only has to provide a list of flags which should be taken into consideration. Using the Periscope Framework, the execution time of the application compiled with different configurations are being measured and tracked. The combination with the best execution time is then being displayed.
+
+
+
+\chapter{Quick Start}
+\section{Quick installation}
+CFS is being installed along with the Periscope Tuning Framework. Please refer to the \textit{PTF Installation Guide} for a complete description of the installation process.
+
+\section{Basic configuration - $cfs\_config.cfg$}
+
+In order to use CFS, a set of configuration instructions are required. These instructions are read at execution time from the \texttt{cfs\_config.cfg} configuration file.
+
+To start with, copy the default configuration file \texttt{cfs\_config.cfg.default} into the folder containing the executable of your application and rename it to \texttt{cfs\_config.cfg}.
+\begin{center}
+\begin{minipage}{0.8\textwidth}
+\texttt{\$PSC\_ROOT/templates/cfs\_config.cfg.default $\rightarrow$ \$APP\_ROOT/.../cfs\_config.cfg}
+\end{minipage}
+\end{center}
+
+For example, for the NPB benchmarks\footnote{See \url{http://www.nas.nasa.gov/publications/npb.html} for downloading and documentation.}, copy the configuration file into the \texttt{bin} folder:
+\begin{center}
+\begin{minipage}{0.8\textwidth}
+    \texttt{>cp~\$PSC\_ROOT/templates/cfs\_config.cfg.default\\
+     NPB3.3-MZ/bin/cfs\_config.cfg}
+\end{minipage}
+\end{center}
+
+Edit \texttt{cfs\_config.cfg} to reflect the current context of your application. Here is an example for the NPB BT-MZ benchmark:
+
+\begin{code}
+\texttt{\\
+// ********* application related settings **********  \\
+\textit{// the path to the Makefile} \\
+makefile\_path="../"; \\
+\textit{// the variable containing the build flags} \\
+makefile\_flags\_var="FFLAGS"; \\
+\textit{// arguments for the make command} \\
+makefile\_args="BT-MZ CLASS=W TARGET=BT-MZ"; \\
+\textit{// path to the source files of the application} \\
+application\_src\_path="../BT-MZ"; \\
+// ************************************************* \\
+ \\
+// ********* plugin related settings *************** \\
+\textit{// the desired search algorithm: exhaustive or individual} \\
+search\_algorithm="exhaustive"; \\
+\textit{// the compiler flags to be considered in the search} \\
+tp "Opt" = "-" ["O1", "O2", "O3"]; \\
+// ************************************************* }
+\end{code}
+
+\section{Running CFS}
+CFS runs as a plugin within the Periscope Tuning Framework. It can be started using \texttt{psc\_frontend} (see also \textit{PTF User's Guide}) by setting the \texttt{tune} flag to \texttt{compilerflags}.
+\begin{center}
+\texttt{--tune=compilerflags}
+\end{center}
+
+For the NPB BT-MZ example, one would call from within the folder containing the execution file:
+\vspace*{0.5cm}
+
+\begin{center}
+\begin{minipage}{0.8\textwidth}
+\texttt{psc\_frontend --apprun="./bt-MZ.W" --uninstrumented \\
+--mpinumprocs=1 --tune=compilerflags \\
+--force-localhost --cfs-config="cfs\_config.cfg"}
+\end{minipage}
+\end{center}
+
+\vspace*{0.5cm}
+This will start the measurements and the CFS tuning strategy for the uninstrumented version of the BT benchmark using one process.
+
+Please note that the application \textit{has to be built} and the executable file passed to the \texttt{apprun} flag \textit{must exist} when calling \texttt{psc\_frontend}.
+
+\section{Execution results}
+
+Upon successful completion of the tuning measurements, the CFS plugin displays at the standard output the list of all flags combinations (\textit{scenarios}) that were used in the search along with the corresponding execution times (\textit{severity}). It also outputs the scenario with the best execution time.
+
+For example, this is the output of the above call to \texttt{psc\_frontend} for the BT-MZ benchmark:
+
+\begin{code}
+\texttt{
+AutoTune Results:\\
+-----------------------\\
+\\
+Optimum Scenario: 2\\
+\\
+Compiler Flags tested:\\
+Scenario 0 flags: " -O1 "\\
+Scenario 1 flags: " -O2 "\\
+Scenario 2 flags: " -O3 "\\
+\\
+\\
+All Results:\\
+Scenario	|  Severity\\
+0		|  3.82434\\
+1		|  3.81748\\
+2		|  3.81678\\
+\\
+------------------------}
+\end{code}
+
+
+\chapter{CFS Autotuning Approach}\label{sec:mappingPTF}
+CFS follows the general PTF plugin approach (see also \textit{PTF User's Guide}).
+
+\section{Tuning parameter}
+Each entry in the flag list represents a \textit{tuning parameter}. All tuning parameters define together the tuning space.
+
+\section{Search strategy}
+In order to find the best tuning of an application, a search through the tuning space has to be performed.
+For the CFS plugin, the \textit{search strategy} can be selected by the plugin user. CFS provides the following search strategies:
+\begin{itemize}
+	\item exhaustive search
+	\item individual search
+    \item random search
+    \item GDE3 search
+    \item Random search based on machine learning
+\end{itemize}
+
+See section~\ref{sec:searchalg} for more details about the search algorithms.
+
+\section{Tuning scenario}
+
+Based on the chosen strategy, consecutive \textit{tuning scenarios} are then being generated at run time and the performance of the application is being evaluated for each of these scenarios.
+
+In the CFS plugin, one scenario represents one combination of compiler flags.
+
+\section{Tuning action}
+
+Applying one specific scenario to the application represents in the CFS case recompiling the application using the compiler flags corresponding to that particular scenario. Thus, the \textit{tuning action} is the recompilation of the application.
+
+
+\chapter{Configuration}
+
+\section{\texttt{cfs\_config.cfg} file}
+All configuration settings for the CFS plugin are read at execution time from the configuration file. The default name of the configuration file is
+\begin{center}
+\texttt{cfs\_config.cfg}
+\end{center}
+
+Another configuration file can be specified by setting the \texttt{cfs-config} parameter when calling the \texttt{psc\_frontend}:
+\begin{center}
+\texttt{psc\_frontend --cfs-config="<config\_file\_name>"}
+\end{center}
+
+The configuration file is being searched in the folder from which the \texttt{psc\_frontend} was started. Hence, if the name also includes a relative path to the file, it has to be relative to that folder.
+
+\section{Application settings}
+All path settings within the configuration file are relative to the path from which \texttt{psc\_frontend} was started.
+
+The following settings are mandatory for any application:
+
+\begin{itemize}
+	\item the path to the application Makefile (where \texttt{make} should be issued)
+	\item the variable used inside the Makefile to store compiler flags
+
+	\item the path to the source files of the application
+
+\end{itemize}
+
+Additionally, one could use the \texttt{makefile\_args} parameter for passing necessary arguments to the \texttt{make} process.
+
+    \begin{center}
+    \begin{minipage}{0.8\textwidth}
+    	\texttt{makefile\_path="<pathName>";}
+    	\texttt{makefile\_flags\_var="<varName>";}
+    	\texttt{application\_src\_path="<pathName>";}
+        \texttt{makefile\_args="<listOfArguments>";}
+    \end{minipage}
+    \end{center}
+
+\section{Remote \texttt{make}}\label{sec:remotemake}
+
+Some HPC systems do not support compilation of applications on a compute node. To allow the CFS plugin to recompile the application, the make command has to be executed on a remote system. This is called {\it remote make} and is activated by setting in the configuration file \texttt{remote\_make} to \texttt{true}. The make command is then executed on a remote machine via \texttt{ssh} with public key authentification. The following configuration options are supported:
+
+\begin{description}
+\begin{minipage}{0.8\textwidth}
+\item[\texttt{identity\_path}] - path to the private key
+\item[\texttt{remote\_make\_machine\_name}] - name of the remote system, e.g. on SuperMUC one of the login nodes such as login05.
+\end{minipage}
+\end{description}
+
+
+
+\section{Search strategies}\label{sec:searchalg}
+
+The search algorithm to be used by the CFS plugin can be set using the \texttt{search\_algorithm} parameter:
+
+    \begin{center}
+    \begin{minipage}{0.8\textwidth}
+    \texttt{search\_algorithm="\textit{<algorithmName>}";}
+    \end{minipage}
+    \end{center}
+
+The default search algorithm is the exhaustive search.
+
+\subsection{Exhaustive search}
+Exhaustive search generates all possible combinations of the given flags (the cross-product). This means that the size of the search space grows very fast (exponentially) with the number of flags.
+
+To select exhaustive search, one should add to the configuration file:
+\begin{center}
+\begin{minipage}{0.8\textwidth}
+	\texttt{search\_algorithm="exhaustive";}
+\end{minipage}
+\end{center}
+
+\subsection{Individual search}
+Individual search starts with the scenario containing only the first given flag and then iteratively adds the next flags, always keeping for the next step only the \textit{k} best scenarios from the current step.
+
+To select individual search, one should add to the configuration file:
+\begin{center}
+\begin{minipage}{0.8\textwidth}
+	\texttt{search\_algorithm="individual";\\
+	individual\_keep=\textit{<k>};}
+\end{minipage}
+\end{center}
+
+
+\subsection{Random search}
+Random search selects \textit{k} random points in the multi-dimensional search space.
+
+To select random search, one should add to the configuration file:
+\begin{center}
+\begin{minipage}{0.8\textwidth}
+	\texttt{search\_algorithm="random";\\
+	sample\_count=\textit{<k>};}
+\end{minipage}
+\end{center}
+
+\subsection{GDE3 search}
+
+GDE3 (Generalized Differential Evolution 3) is a genetic search algorithm. The algorithm starts by randomly creating scenarios within the search space. These scenarios are called parents and constitute a population. In each generation, for every parent a child scenario is created by crossover between three other parent scenarios and mutation of the parent scenario.
+
+After all children are created and evaluated, parent scenarios are compared
+to their respective children for dominance. A scenario dominates another
+scenario if it is better with respect to all objectives. Dominated scenarios
+are rejected, while non-dominated scenarios constitute parents for the next
+generation. The search goes on until the stopping criterion is met. The GDE3
+search stops if any of the following conditions is met:
+
+\begin{enumerate}
+\item For three consecutive generations, same scenarios stay non-dominated at the end of generation, which means there is no improvement in solutions for three consecutive generations.
+\item The limit for the maximum number of generations is reached.
+\item The timer, if registered, expires. The timer is registered if the
+    user wants to put an upper limit on the tuning execution time.
+\item The number of attempts at generating not yet explored children has
+    reached the upper limit. Currently, the number of attempts in each
+    generation is set to 10000.
+\end{enumerate}
+
+
+To select GDE3 search, one should add to the configuration file:
+
+\begin{center}
+\begin{minipage}{0.8\textwidth}
+	\texttt{search\_algorithm="GDE3";\\
+	gde3\_population\_size=\textit{<k>};\\
+    minutes\_to\_search=\textit{<k>};}
+\end{minipage}
+\end{center}
+
+If the population size is not given, GDE3 will use a default value. If the time to search is not specify, no limit is enforced.
+
+\subsection{Machine learning}
+
+If the search algorithm is random search, the probability for values of a  compiler flag can be determined based on previous tunings with the CFS plugin. This approach is called machine learning and will be switched on by:
+\begin{center}
+\begin{minipage}{0.8\textwidth}
+	\texttt{machine\_learning="true";}
+\end{minipage}
+\end{center}
+
+The plugin will first run a pre-analysis to determine the signature of the current program. The signature is a vector of hardware counter measurements taken after compiling the program with optimization {\tt O1}.
+
+This signature is then passed to the random search algorithm which will look up similar programs and their tuning results in a tuning database. From those previous results it computes a probability distribution for the compiler flag values. This is then applied when a number of random samples is taken.
+
+After the evaluation of the generated scenarios, the results are inserted into the database to increase the gathered knowledge.
+
+
+\section{CFS tuning parameters}
+
+The tuning parameters for the CFS plugin are defined in the \texttt{cfs\_config.cfg} file as follows:
+
+\begin{center}
+\begin{minipage}{0.8\textwidth}
+\texttt{tp\textvisiblespace"\textit{<paramName>}"
+\textvisiblespace=\textvisiblespace"\textit{<prefix>}"
+\textvisiblespace[\textit{<valuesList>}]}
+\end{minipage}
+\end{center}
+
+where
+
+\begin{itemize}
+	\item \texttt{<prefix>} is a non-empty string\footnote{If you need an empty string here, please use instead a space inside the quotation marks: "\textvisiblespace".} and
+	\item \texttt{<valuesList>} specifies the list of values of the current parameter, either as a list of strings:
+	\begin{center}
+        \begin{minipage}{0.8\textwidth}
+		\texttt{<valuesList> = "\textit{value1}","\textit{value2}", ...} \\
+with \texttt{\textit{value1}, \textit{value2}, ...} string values
+        \end{minipage}
+	\end{center}
+or as a integer range:
+\begin{center}
+\begin{minipage}{0.8\textwidth}
+\texttt{<valuesList> = \textit{valStart},\textit{valEnd}[,\textit{step}]} \\
+with \texttt{\textit{valStart}}, \textit{step} and \texttt{\textit{valEnd}} integer values.
+\end{minipage}
+\end{center}
+If \textit{step} is omitted, the default step value of 1 is being used.
+
+\end{itemize}
+The \texttt{prefix} is prepended to each of the values listed for a tuning parameter.
+
+When building the scenarios, all given values of a tuning parameter are considered one at a time when combining them with the values of the other tuning parameters.
+
+For example, having defined:
+
+\begin{code}
+\texttt{tp "TP1" = "-O" ["0","2","3 -opt-prefetch"]}\\
+\texttt{tp "TP2" = " " ["-ip"," "]}
+\end{code}
+
+will generate the following scenarios:
+
+\begin{code}
+\texttt{-O0 -ip}\\
+\texttt{-O0}\\
+\texttt{-O2 -ip}\\
+\texttt{-O2}\\
+\texttt{-O3 -opt-prefetch -ip}\\
+\texttt{-O3 -opt-prefetch}
+\end{code}
+
+
+\subsection{"ON/OFF" compiler flags}
+The most simple tuning parameter for the CFS plugin is represented by one single compiler flag which can either be enabled or disabled. Such are, for example, the \texttt{ip}, \texttt{ipo}, or \texttt{opt-prefetch} flags.
+
+An "ON/OFF" flag has two states which have to be given as two different values. For example:
+
+\begin{code}
+\texttt{tp "SingleFlag1" = " " ["-ip"," "]}\\
+\texttt{tp "SingleFlag2" = " " ["-opt-prefetch"," "]}
+\end{code}
+
+\subsection{Flags with multiple values}
+Some compiler flags also accept the assignment of a particular value. Such are, for example, the \texttt{unroll} flag which accepts a value for the unroll transformation factor, or the optimization flag \texttt{O} which also accepts an optimization level.
+
+These kinds of flags can be easily defined as tuning parameters with either a range of integer values, or a list of string values:
+
+\begin{code}
+\texttt{tp "ParameterFlag1" = "-unroll=" [1,5]}\\
+\texttt{tp "ParameterFlag2" = "-O" ["0","2","3"]}
+\end{code}
+
+\subsection{Combining flags}
+There are cases where several compiler flags are known to give best results if considered together. In this case one would like to define such a "combined" flag.
+
+This can be achieved by simply giving the two or more flags as one single value of a tuning parameter. For example:
+
+\begin{code}
+\begin{minipage}{0.8\textwidth}
+\texttt{\texttt{tp "CombinedFlag" = " " ["-ip -ipo"," "]}}
+\end{minipage}
+\end{code}
+
+\subsection{Excluding flags}
+For conflicting compiler flags, where it is known that they actually should exclude each other in any flags combination, one could set them as different values of the same tuning parameter. For example:
+
+\begin{code}
+\texttt{tp "ExcludingFlags" = " " ["-O3","-no-prefetch"]}
+\end{code}
+
+\subsection{Compiler default configuration}\label{sec:compilerconfig}
+The CFS plugin comes along with a series of standard configuration files for different compilers. These can be used by specifying in the configuration file the name of the compiler which is going to be used:
+\begin{center}
+\begin{minipage}{0.8\textwidth}
+\texttt{compiler="\textit{<compilerName>"}}
+\end{minipage}
+\end{center}
+
+
+Please note that currently only one compiler can be set per run\footnote{See section~\ref{sec:limitationscompilers} for more details on this issue.}.
+
+As of the current version, the following compilers are provided with a standard flags selection file:
+
+\begin{center}
+\begin{tabular}[h]{ l  l }
+Compilers:  & \texttt{ifort}\\
+            & \texttt{icc}\\
+\end{tabular}
+\end{center}
+
+The complete list of the compilers supported by your installed version of CFS can be retrieved by looking into the \texttt{\$PSC\_ROOT/templates} directory. The compiler configuration files are named
+
+\begin{center}
+\texttt{\$PSC\_ROOT/templates/cfs\_\textit{compilerName}.cfg}
+\end{center}
+
+Please note that only those \textit{compilerName} which are present in the \textit{template} directory can be used as values for the \texttt{compiler} variable in the configuration file. Custom locations for compiler template files are not supported.
+
+Compiler templates contain a list of predefined tuning parameters and configuration options. For example, the \texttt{cfs\_ifort.cfg} has the following content:
+
+\begin{code}
+\texttt{tp "TP\_IFORT\_OPT" = "-" ["O2", "O3", "O4"];}\\
+\texttt{tp "TP\_IFORT\_XHOST"  = " " ["-xhost", " "];}\\
+\texttt{tp "TP\_IFORT\_UNROLL" = " " ["-unroll", " "];}\\
+\texttt{tp "TP\_IFORT\_PREFETCH" = " " ["-opt-prefetch", " "];}\\
+\texttt{tp "TP\_IFORT\_IP" = " " ["-ip -ipo", " "];}\\
+\texttt{ }\\
+\texttt{individual\_keep=1;}\\
+\texttt{search\_algorithm="individual";}
+\end{code}
+
+The settings defined in the compiler configuration file are loaded at runtime before those defined in the user configuration file. If the name of a tuning parameter defined in the compiler file is also encountered in the user configuration file, then a duplicate tuning parameter is being created.
+
+All other settings besides the tuning parameters are being overwritten by the settings in the user configuration file.
+
+For example, if the following \texttt{cfs\_config.cfg} file is being used:
+
+\begin{code}
+\texttt{compiler="ifort";\\
+makefile\_path="../"; \\
+makefile\_flags\_var="FFLAGS"; \\
+makefile\_args="BT-MZ CLASS=W TARGET=BT-MZ"; \\
+application\_src\_path="../BT-MZ"; \\
+\\
+search\_algorithm="exhaustive"; \\
+\\
+tp "TP\_IFORT\_OPT" = "-" ["O2", "O3"]; \\
+}
+\end{code}
+
+then, first of all, the compiler configuration file \texttt{cfs\_ifort.cfg} is going to be loaded, setting the search strategy to \textit{individual search}. Afterwards the settings in the \texttt{config.cfg} are also being parsed, thus changing the search strategy from individual to \textit{exhaustive search}.
+
+The optimization levels, however, are not going to be overwritten. There will be two tuning parameters called \texttt{TP\_IFORT\_OPT}. As result, in this particular case, scenarios like \texttt{-O2 -O2} and \texttt{-O3 -O2} will also be created (which, of course, is not a recommended practice).
+
+\section{Improved tuning time}
+There are two means to guide the CFS plugin to speedup the tuning process: the selective build of source files and the instrumentation of the application.
+
+\subsection{Selective \texttt{make}}\label{sec:periscopeprofiling}
+As described in section~\ref{sec:mappingPTF}, the CFS plugin performs as a tuning action the recompilation of the test application. This means that for each test scenario the entire application will be rebuilt. Even for relatively small source codes this might already require considerable time compared to the rest of the autotuning process.
+
+In order to avoid this overhead, the rebuild process can be directed to recompile only a restricted list of source files. These source files should be, in most cases, the files which contain the code with a high percentage of the execution time.
+
+The \textit{selective make} can be activated by setting in the configuration file \texttt{make\_selective} to \texttt{true} and \texttt{selective\_file\_list} to the corresponding list of source files.
+
+For the previous example, the NPB BT-MZ application, one would set:
+
+\begin{center}
+\begin{minipage}{0.8\textwidth}
+\texttt{make\_selective="true";\\
+selective\_file\_list="x\_solve.f y\_solve.f z\_solve.f";}
+\end{minipage}
+\end{center}
+
+The list of source files to be rebuilt can be determined automatically using one of the two methods:
+
+\begin{enumerate}
+	\item the Intel compiler profiling, or
+	\item the Periscope profiling feature.
+\end{enumerate}
+
+\begin{description}
+
+\item[Intel compiler profiling] - can be used only for serial and MPI applications and is based on the profiling measurements generated with the help of the \texttt{-profile-functions} flag of the Intel compiler.
+
+To use this method proceed as follows:
+\begin{enumerate}
+	\item add the \texttt{-profile-functions} flag to your build command;
+	\item build the application using the Intel compiler;
+	\item run the application (as usually). This will generate in the current folder one \texttt{*.xml} file and one \texttt{*.dump} file.
+\end{enumerate}
+
+\item[Periscope profiling] - supports also parallel applications and is based on the profiling feature of Periscope.
+
+Unlike the previous method, this method is fully automatic. Nevertheless, it requires that the subroutines are instrumented in the test application. This can be done by setting either \texttt{all} or \texttt{sub} as instrumentation method for PTF. Please check the Section \textit{Automatic Instrumentation} of the \textit{PTF User's Guide} for further details on instrumentation.
+
+The Periscope profiler is being called if \texttt{make\_selective} option is set to \texttt{true} in the configuration file, but no list of files is given through the \texttt{selective\_file\_list} flag and there are also no \texttt{loop\_prof\_funcs\_*} files generated.
+
+Periscope executes a test run of the application and measures the execution time of all routines. It then selects the routines taking more than a given threshold\footnote{The threshold is internally set within Periscope and cannot be changed by the user. The common value is of 70\%.} of the total execution time and registers the corresponding files for selective rebuild. This process is transparent to the user and it is integrated within the Periscope general tuning workflow as the pre-analysis step.
+
+Please note that, apart from speeding up the tuning process, using the Periscope profiling also has the advantage that in the end it also delivers the best compiler combinations for the given files and execution times for the most time consuming routine in each of the files, as opposed to only providing the global best scenario for the entire application.
+
+\end{description}
+
+The decision which profiling method to apply is taken based on the following criteria\footnote{Note that \texttt{make\_selective} has to be set to \texttt{true}.}:
+
+\begin{enumerate}
+	\item If \texttt{selective\_file\_list} is given in the configuration file, then this list of files is used.
+	\item If there is no list given in the configuration file, then the profile file \texttt{loop\_prof\_funcs\_*} is searched and used.
+	\item If the \texttt{loop\_prof\_funcs\_*} is not given, then the Periscope profiler is being used.
+\end{enumerate}
+
+For the latter, the list of selected files can be checked by the user only in the final output or in the advice file.
+
+
+
+\subsection{Instrumented applications}
+
+Another means to reduce the tuning time is to carry out performance measurements only on a (short) interval of the execution and not on the entire application. For example, if there is a main iterative loop, one could measure performance for only one iteration step instead of the entire execution of the loop.
+
+Such a behaviour can be achieved by instrumenting the application with an appropriate phase region definition. More precisely, for the case above, the entire body of the main loop would be defined as a phase region\footnote{Please refer to the \textit{PTF User's Guide} for more details regarding application instrumentation and running Periscope for an instrumented application.}.
+
+For example, the NPB BT-MZ application can be instrumented by adding the phase region declarations to the \texttt{bt.f} file:
+
+\begin{lstlisting}[language=Fortran]
+c------------------------------------------------------
+c      start the benchmark time step loop
+c------------------------------------------------------
+
+       do  step = 1, niter
+
+! (lines omitted here ...)
+
+!$MON user region
+         call exch_qbc(u, qbc, nx, nxmax, ny, nz)
+
+         do zone = 1, num_zones
+           call adi(rho_i(start1(zone)), us(start1(zone)),
+     $              vs(start1(zone)), ws(start1(zone)),
+     $              qs(start1(zone)), square(start1(zone)),
+     $              rhs(start5(zone)), forcing(start5(zone)),
+     $              u(start5(zone)),
+     $              nx(zone), nxmax(zone), ny(zone), nz(zone))
+         end do
+!$MON end user region
+
+       end do
+\end{lstlisting}
+
+By default, CFS assumes that the application is instrumented. If no phase region is given in the application, then the main program is used.
+
+Besides the phase declarations, a minimal modification of the \texttt{Makefile} (or of the compilation and linking commands for the application) is required, in order for Periscope to execute with the instrumented application. Basically, the \texttt{psc\_inst} script call has to be added in front of the compiler call in the \texttt{Makefile}. Please refer to the \textit{Quick Start} section of the \textit{PTF User's Guide} for an example and details on how to work with instrumented applications.
+
+In order to carry out the tuning process in the uninstrumented mode, one can pass to \texttt{psc\_frontend} the flag
+
+\begin{center}
+\texttt{--uninstrumented}
+\end{center}
+
+Please note that, in the uninstrumented mode, the execution time is measured as the wall clock time of the system command which executes the application. This means that reliable results can be achieved only if the execution time of the application is not too small\footnote{See also section~\ref{sec:limitationstime} of this guide for more details.}.
+
+\section{Output options}
+
+There are two options in the configuration file with respect to the output of the CFS plugin:
+
+\subsection{CSV output}
+By default, the CFS plugin will generate two types of output, as described in Section~\ref{sec:outputs} of this guide:
+\begin{enumerate}
+	\item console output in plain text and
+	\item standard Periscope advice in XML format.
+\end{enumerate}
+
+There is a third option which can be activated in the configuration file by means of the \texttt{results\_file} flag:
+
+\begin{center}
+\begin{minipage}{0.8\textwidth}
+	\texttt{results\_file="\textit{<filePath>}"}
+\end{minipage}
+\end{center}
+
+This is a CSV (Comma Separated Values) formatted file and it contains the same information as the console output.
+
+\subsection{Routines measurements}\label{sec:routines}
+The standard tuning output of the CFS plugin provides execution times and compiler flag combinations with respect to the entire application. There is a means to retrieve more fine granular information though, if the \texttt{routine} option is used in the configuration file:
+
+\begin{center}
+\begin{minipage}{0.8\textwidth}
+\texttt{routine=" \textit{<routine1>}, \textit{<routine2>}, ... "}
+\end{minipage}
+\end{center}
+
+If given, the routines are measured separately and their execution time is output along with the best scenario for the corresponding file.
+
+Please note that the same happens with the routines detected by Periscope profiling\footnote{See Section~\ref{sec:periscopeprofiling}.}, if the profiling feature is activated. Nevertheless, the two sets of routines - those detected with the Periscope profiling feature, and these declared here with the help of the \texttt{routine} flag - do not interfere with each other.
+
+Also note that, unlike the routines from the Periscope profiling list, all routines defined in the configuration file are going to be measured on the process with rank 0 (for parallel applications, of course).
+
+As in the case of the Periscope profiling too, in order to be able to use the \texttt{routine} option in the configuration file, it is required that the instrumentation of the subroutines is turned on for the application currently being tested\footnote{Please check the Section \textit{Automatic Instrumentation} of the \textit{PTF User's Guide} for further details on instrumentation.}.
+
+\chapter{How To Use the Tuning Advice}\label{sec:outputs}
+
+Upon successful completion, the CFS plugin outputs a list of all tested scenarios and their corresponding global times, as well as the id of the best scenario. The best global scenario refers to the entire application and it consists of the compiler flag combination which provided the best execution time of the test application.
+
+If routines are also measured\footnote{See Sections~\ref{sec:periscopeprofiling} and~\ref{sec:routines}. }, then there will be  more \textit{best scenarios} printed, namely the best scenario for each file containing one measured routine. The best execution time for the routines are also being printed.
+
+The output is delivered in two formats:
+\begin{enumerate}
+	\item plain text at console output, and
+	\item XML format in the standard Periscope advice file.
+\end{enumerate}
+
+The XML advice file also contains the routine execution times for all scenarios, besides the best execution time.
+
+In order to use the results of the CFS plugin tuning, one should copy the string indicating the best scenario (best combination) and add it to the Makefile as an option for the compiler.
+
+For example, given the CFS plugin console output:
+
+\begin{code}
+\texttt{
+AutoTune Results:\\
+-----------------------\\
+\\
+Optimum Scenario: 2\\
+\\
+Compiler Flags tested:\\
+Scenario 0 flags: " -O1 "\\
+Scenario 1 flags: " -O2 "\\
+Scenario 2 flags: " -O3 "\\
+}
+\end{code}
+
+one should add in the Makefile:
+
+\begin{code}
+\texttt{gcc -O2 myFile.c}
+\end{code}
+
+
+\chapter{Limitations and Known Issues}
+There are a couple of limitations and known issues of which the users of the CFS plugin should be aware of:
+
+\section{Unreliable measurements}\label{sec:limitationstime}
+
+The CFS tuning strategy highly relies on the performance measurements of the underlying framework, namely the Periscope Tuning Framework (PTF), which is responsible to deliver the execution time measurements. As with most measurement tools, there is a limit in the accuracy level that can be achieved, meaning that any values lower than the provided accuracy cannot usually be registered.
+
+The execution time which can be measured by PTF for uninstrumented applications has such a limitation as well. While the exact threshold also depends on the machine and the system on which the measurements are conducted, one should generally consider a lower limit for the execution times of approximately 2 s.
+
+Please be aware that this refers to the region or phase actually measured by PTF. For example, when performing tuning on instrumented applications, it is not the total execution time, but the smallest region execution time that should be considered.
+
+
+\section{Multiple compilers}\label{sec:limitationscompilers}
+
+As of the current version of the CFS plugin it is not possible to tune one application with different compilers in one tuning run. For example, one might like to declare in one configuration file two or more compilers and the corresponding sets of flags and then use CFS to choose the best execution time of all. This is not possible, as currently only one single compiler can be defined in the configuration file (see section~\ref{sec:compilerconfig}).
+
+Nevertheless, the above can be achieved by starting CFS several times, once for each compiler, and then manually compare the execution times of the best scenarios of each run.
+
+
+\end{document}

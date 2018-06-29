@@ -1,0 +1,7 @@
+#
+#  instrumentation control for periscope
+#
+#  id  filename      [all none mod_only user sub call loop omp mpi]  # if any
+#
+    1  print_results.f                       none
+    2  timers.f                              none

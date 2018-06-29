@@ -1,0 +1,123 @@
+#!/usr/bin/env python 
+
+# Periscope script to print properties file to the terminal
+#   Revision:       $Revision$
+#	Revision date:  $Date$
+#	Committed by:   $Author$
+#
+#	This file is part of the Periscope performance measurement tool.
+#	See http://www.lrr.in.tum.de/periscope for details.
+#
+#	Copyright (c) 2005-2011, Technische Universitaet Muenchen, Germany
+#	See the COPYING file in the base directory of the package for details.
+
+import sys, string, os, collections
+
+progname = os.path.basename(sys.argv[0])
+
+def usage():
+    help = "usage: %s [-p] [-r] [infile.xml]" % progname
+    sys.stderr.write(help + '\n')
+    sys.exit(-2)
+
+def error(msg):
+    sys.stderr.write(progname + ': ' + msg + '\n')
+    sys.exit(-1)
+
+class Property:
+    def __init__(self, severity, type, file, line, description):
+        self.severity = severity
+        self.type = type
+        self.file = file
+        self.line = line
+        self.description = description
+
+def xml_scan(inFileName):
+    from xml.dom import minidom, Node
+    def get_text(node):
+        text = []
+        for child in node.childNodes:
+            if child.nodeType == Node.TEXT_NODE:
+                text.append(child.data)
+        return string.join(text).strip()
+
+    doc = minidom.parse(inFileName)
+    result = list();
+    for element in doc.getElementsByTagName("property"):
+        description = get_text(element.getElementsByTagName('name')[0])
+        severity = get_text(element.getElementsByTagName('severity')[0])
+        context = element.getElementsByTagName('context')[0]
+        file = get_text(context.attributes.get('FileName'))
+        line = get_text(context.attributes.get('RFL'))
+        type = get_text(context.attributes.get('Region'))
+        item = Property(float(severity), type[0], file, int(line), description)
+        result.append(item)
+    return result
+
+def all(result):
+    for item in sorted(result, key = lambda item: item.severity):
+        if type and (item.description.find(type) < 0): continue
+        if file and (item.file.find(file) < 0): continue
+        location = "%s[%d]" % (item.file, item.line)
+        print "%7.2f %s %-36s  %s" % (item.severity, item.type,
+                                      location, item.description)
+    print "total of %d items" % (len(result))
+
+def regions(result):
+    severity = {}
+    count = {}
+    for item in result:
+        loc = "%s[%d]" % (item.file, item.line)
+        if severity.has_key(loc):
+            severity[loc] = max(severity[loc], item.severity)
+            count[loc] += 1
+        else:
+            severity[loc] = item.severity
+            count[loc] = 1
+    keys = severity.keys()
+    keys.sort(key = lambda loc: severity[loc])
+    for loc in keys:
+        print "%7.2f %4d  %-36s" % (severity[loc], count[loc], loc)
+
+def problems(result):
+    severity = {}
+    count = {}
+    for item in result:
+        problem = item.description
+        if count.has_key(problem):
+            severity[problem] = max(severity[problem], item.severity)
+            count[problem] += 1
+        else:
+            severity[problem] = item.severity
+            count[problem] = 1
+    keys = severity.keys()
+    keys.sort(key = lambda problem: severity[problem])
+    for problem in keys:
+        print "%7.2f %4d  %-36s" % (severity[problem], count[problem], problem)
+
+input  = "properties.psc"
+output = all
+file   = None
+type   = None
+
+def main():
+    global input, output, file, type
+    params = sys.argv[1:]
+    params.reverse()
+    while len(params) > 0:
+        arg = params.pop()
+        if   arg == "-f":   file   = params.pop()
+        elif arg == "-p":   output = problems
+        elif arg == "-r":   output = regions
+        elif arg == "-t":   type   = params.pop()
+        elif arg[0] != "-": input  = arg
+        else: usage()
+
+    if not os.path.isfile(input):
+        error("file '%s' not found!" % input)
+    result = xml_scan(input)
+    output(result)
+
+if __name__ == '__main__':
+    main()
+

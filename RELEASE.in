@@ -1,0 +1,30 @@
+Periscope Tuning Framework (PTF) release information:
+
+Framework version:        @VERSION@ 
+Revision:                 @REVISION@
+
+Component information:
+Periscope version:        @PERISCOPE_VERSION@
+Pathway version:          @PATHWAY_VERSION@
+
+Plugin information:
+
+Compiler Flags Selection: 
+Version:                  @COMPILERFLAGS_VERSION@
+Revision:                 @COMPILERFLAGS_REVISION@
+
+DVFS: 
+Version:                  @DVFS_VERSION@
+Revision:                 @DVFS_REVISION@
+
+Master Worker: 
+Version:                  @MASTERWORKER_VERSION@
+Revision:                 @MASTERWORKER_REVISION@
+
+MPI Parameters: 
+Version:                  @MPIPARAMETERS_VERSION@
+Revision:                 @MPIPARAMETERS_REVISION@
+
+Pipeline Pattern: 
+Version:                  @PIPELINE_VERSION@
+Revision:                 @PIPELINE_REVISION@

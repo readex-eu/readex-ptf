@@ -1,0 +1,1260 @@
+\documentclass[11pt,a4paper, oneside]{book} %twoside,
+
+\usepackage{hyperref}
+\usepackage{color}
+%\usepackage{amssymb}
+%Used for tildes urls
+\usepackage{url}
+%Used for longtables
+\usepackage{longtable}
+\usepackage{graphicx}
+%Used to change the way paragraph formats the titles and modify section depth to 4.
+\usepackage{titlesec}
+\setcounter{secnumdepth}{3}
+
+
+%Used for having noidentation for paragraphs
+%and vertical spacing between them
+\usepackage{parskip}
+
+\usepackage{listings}
+
+%When we remove Score-P part we should replace sections of Periscope with
+%chapters, subsections with sections, etc.
+
+%Repository locations
+\newcommand{\gitrepocert}{\url{http://periscope.in.tum.de/ca.crt} }
+\newcommand{\eclipseurl}{\url{http://www.eclipse.org/downloads} }
+\newcommand{\subversiveurl}{\url{http://download.eclipse.org/technology/subversive/3.0/update-site} }
+\newcommand{\subclipseurl}{\url{http://subclipse.tigris.org/update_1.10.x} }
+\newcommand{\rseurl}{\url{http://download.eclipse.org/tm/updates/4.0} }
+\newcommand{\ptpurl}{\url{http://download.eclipse.org/tools/ptp/updates/mars} }
+\newcommand{\ptfrepo}{\url{https://periscope.in.tum.de/git/Periscope} }
+\newcommand{\scoreprepo}{\url{https://silc.zih.tu-dresden.de/svn/silc-root/branches/TRY_RMIJAKOVIC_tuning_substrate} }
+\newcommand{\ptftarball}{\url{http://periscope.in.tum.de/releases/latest/tar/PTF-latest.tar.bz2} }
+\newcommand{\scoreptarball}{\url{http://periscope.in.tum.de/releases/latest/tar/scorep-tuning.tar.bz2} }
+\newcommand{\scorepdevurl}{\url{https://silc.zih.tu-dresden.de/svn/hooks-root/afs-dev/scripts} }
+\newcommand{\mpichurl}{\url{http://www.mpich.org/downloads} }
+\newcommand{\openmpiurl}{\url{http://www.open-mpi.org/software/ompi/v1.8} }
+\newcommand{\aceurl}{\url{http://download.dre.vanderbilt.edu} }
+\newcommand{\boosturl}{\url{http://www.boost.org} }
+\newcommand{\papiurl}{\url{http://icl.cs.utk.edu/papi/software/index.html} }
+\newcommand{\doxygenurl}{\url{ftp://ftp.stack.nl/pub/users/dimitri} }
+\newcommand{\ptfguiurl}{\url{http://www.lrr.in.tum.de/~petkovve/psc/eclipse} }
+\newcommand{\pathwayurl}{\url{http://periscope.in.tum.de/pathway/eclipse} }
+\newcommand{\pluginsurl}{\url{https://github.com/score-p} }
+
+
+%LaTeX macros
+\newcommand{\installloc}[1]{\$HOME/install/#1}
+\newcommand{\ptfbrackets}[1]{\textless #1\textgreater}
+\newcommand{\eclipseplugin}[3]{
+Following are the steps that have to be done to install #1:
+ \begin{itemize}
+  \item Add the update site of the #1
+  \begin{itemize}
+   \item Select Help$\rightarrow$Install New Software menu.
+   \item Click on Add at the top right side of the window to display a dialog
+for adding new update sites.
+  \item Enter #1 for the Name field.
+  \item Enter #2 for the Location field.
+  \item Click OK to add it and go back to the previous window.
+  \end{itemize}
+  \item Select the update site by entering #1 if it is not already selected in
+the Work with field.
+  \item Select the #3 from the table with the provided
+features and click Next.
+  \item Eclipse will calculate all dependencies and then it will show a list of
+all plug-ins to be installed. Click Next to confirm this selection and continue.
+  \item You should accept the license (required by Eclipse for all plug-ins) and
+click Next again to start the installation.
+  \item After the downloading and installing everything, Eclipse will ask you if
+you want to restart it. It is highly recommended that you choose Yes so that the
+IDE can cleanly load the newly installed software.
+ \end{itemize}
+
+}
+
+\newcommand{\draft}[1]{\textcolor{blue}{#1}}
+\newcommand{\hint}[1]{\textcolor{OliveGreen}{[{\it#1}]}}
+\newcommand{\fishy}[1]{\textcolor{red}{#1}}
+\newcommand{\comment}[1]{\marginpar{\scriptsize{\textcolor{red}{#1}}}}
+\newenvironment{code}%
+{
+\addtolength{\leftskip}{0.5cm}}%
+{
+
+}
+
+\begin{document}
+
+\title{\includegraphics[width=4cm]{images/Ptf_LogoBlau}\\ \vspace{1cm}
+\textsf{\bf \huge PTF Installation Guide }\\
+       \normalsize PTF Version: 2.0}
+\author{Robert Mijakovi\'{c}}
+\date{15.11.2015}
+
+\maketitle
+\tableofcontents
+
+\chapter*{Topics referenced from the PTF User's Guide}
+\begin{itemize}
+	\item Command line options for building PTF
+	\item Description of the .periscope file and appropriate values for the settings in there
+	\item How to install GUI as an Eclipse plugin
+\end{itemize}
+
+\chapter{Introduction} %*
+
+The installation guide is separated into chapters on how to checkout or download
+the code, install it and start PTF; and how to do it for Score-P. Each chapter
+consists of sections describing mandatory dependencies, optional dependencies
+and steps necessary to proceed with the actual action, e.g., checkout the code.
+
+Dependencies sections consist of explanation on how to load, install or compile
+dependencies from source. Depending on a system, dependencies can be loaded as
+modules on some systems, installed from a distribution package management
+system, or compiled from source downloaded directly from a tool developers
+webpage.
+%Was chapter before, now it is sections. Return to the previous state when Score-P is removed.
+The sections on how to checkout the code are for developers only and can be
+skipped by users who just want to try the framework. To install PTF, developers
+should checkout the Periscope and Score-P source code from the repository and
+other users should download both from the website. To checkout the Periscope
+repository and the Score-P repository credentials are required. Periscope
+developers should ask for credentials at \href{mailto:periscope@lists.lrz.de}
+{periscope@lists.lrz.de}. Score-P developers should ask for credentials at
+\href{mailto:support@score-p.org}{support@score-p.org}.
+
+\chapter{PTF}
+
+\section{Checking out PTF (Developers)}
+
+\subsection{Dependencies}
+
+The instructions for developers on how to checkout PTF are described here. The
+procedure is separated in two steps, mandatory and optional. The first part,
+describes how to install Git, revision control tool used by PTF, and SSL
+certificates for the website where PTF source code is stored. The second part,
+gives instructions for Eclipse users on how to install the Eclipse IDE and the
+revision control tool for it.
+
+\subsubsection{Git}
+To install Git on Debian-based Linux execute the command:
+
+\texttt{sudo apt-get install git}
+
+SuperMUC and Taurus already have modules for Git which can be loaded by
+executing:
+
+\texttt{module load git}
+
+%Maybe to follow the itemize way of spliting it.
+
+As the PTF repository is only accessible via the HTTPS communication protocol,
+the SSL certificate is required. To add the certificate, first it has to be
+downloaded from \gitrepocert. The usual path for storing certificates in Linux
+is "/usr/share/ca-certificates". In this tutorial a directory on the path, i.e.,
+"/usr/share/ca-certificates/extra" was created and the certificate was stored in
+it. As the directory is protected for normal users it has to be created with
+sudo rights.
+
+The certificate can be downloaded from the command line by executing the
+command:
+
+\texttt{sudo wget \gitrepocert}
+
+The relative path after the certification location has to be inserted into the
+configuration file "/etc/ca-certificates.conf", i.e. "extra/ca.crt". Execute
+the update-ca-certificates program, i.e. "\texttt{sudo update-ca-certificates}".
+That finishes the step of installing the certificate. Git now can validate that
+a Periscope repository web server is authentic and clone the repository.
+
+\subsection{Optional: Eclipse users dependencies}
+Eclipse users have possibility to checkout Score-P code directly from Eclipse by
+using Subversive or Subclipse plugins. To run Eclipse and plugins the Java
+runtime environment is required. Installing Java can easily be done from your
+distribution's package management. On Ubuntu this can be by adding
+ppa:webupd8team/java repository with sudo rights to apt package manager. This is
+done by executing the command:
+
+\texttt{sudo add-apt-repository ppa:webupd8team/java}
+
+When the Java repository was added to the apt package management, update the
+package management information and install the package
+oracle-java\ptfbrackets{X}-installer, where X is prefered version.
+This is done by executing the commands:
+
+\texttt{sudo apt-get update}
+
+\texttt{sudo apt-get install oracle-java\ptfbrackets{X}-installer}
+
+Since Java is installed, now Eclipse can also be installed.
+
+ \begin{itemize}
+  \item Go to \eclipseurl and choose the distribution package that best fits
+your needs. The most common selection would be the Eclipse IDE for C/C++
+Developers (or Eclipse for Parallel Application Developers).
+  \item You will be redirected to a web site from which you can download the
+chosen archive package.
+
+  \item After downloading, simply extract the archive to a folder.
+  \item This completes the installation of Eclipse. The IDE is started by
+running ./eclipse from within the extracted folder, or add it to your PATH.
+ \end{itemize}
+
+To specify the location add the following command into your startup bash script,
+i.e., \$HOME/.bashrc:
+
+\texttt{export PATH=\installloc{eclipse}:\$PATH}
+
+\subsubsection{Remote System Explorer (RSE)}
+Remote System Explorer is part of Eclipse Parallel Tools Platform (PTP).
+\eclipseplugin{RSE}{\rseurl}{TM and RSE 3.x Main Features}
+
+%==========Without LaTeX macro==========%
+%Following are the steps that have to be done to install RSE:
+% \begin{itemize}
+%  \item Add the update site of the RSE
+%  \begin{itemize}
+%   \item Select Help$\rightarrow$Install New Software menu.
+%   \item Click on Add at the top right side of the window to display a dialog
+%for adding new update sites.
+%  \item Enter RSE for the Name field.
+%  \item Enter \rseurl for the Location field.
+%  \item Click OK to add it and go back to the previous window.
+%  \end{itemize}
+%  \item Select the update site by entering RSE if it is not already selected in
+%the Work with field.
+%  \item Select the TM and RSE 3.x Main Features from the table with the provided
+%features and click Next.
+%  \item Eclipse will calculate all dependencies and then it will show a list of
+%all plug-ins to be installed. Click Next to confirm this selection and continue.
+%  \item You should accept the license (required by Eclipse for all plug-ins) and
+%click Next again to start the installation.
+%  \item After the downloading and installing everything, Eclipse will ask you if
+%you want to restart it. It is highly recommended that you choose Yes so that the
+%IDE can cleanly load the newly installed software.
+% \end{itemize}
+
+%\subsubsection{Photran}
+%Photran is an Eclipse plug-in that provides Integrated Development Environment
+%and Refactoring Tool for Fortran. It is necessary to have Photran to use
+%Periscope GUI for Eclipse. Photran is part of Eclipse Parallel Tools Platform
+%(PTP), but is also available as an Eclipse plug-in. The PTP is available as a
+%part of Eclipse for Parallel Application Developers.\\
+%\eclipseplugin{PTP}{\ptpurl}{Fortran Development Tools (Photran)}
+
+%==========Without LaTeX macro==========%
+%Following are the steps that have to be done to install Photran:
+% \begin{itemize}
+%  \item Add the update site of the PTP
+%  \begin{itemize}
+%   \item Select Help$\rightarrow$Install New Software menu.
+%   \item Click on Add at the top right side of the window to display a dialog
+%for adding new update sites.
+%   \item Enter PTP for the Name field.
+%   \item Enter \ptpurl for the Location field.
+%   \item Click OK to add it and go back to the previous window.
+%  \end{itemize}
+%  \item Select the update site by entering PTP in the Work with field.
+%  \item Select the Fortran Development Tools (Photran) from the table with the
+%provided features and click Next.
+%  \item Eclipse will calculate all dependencies and then it will show a list of
+%all plug-ins to be installed. Click Next to confirm this selection and continue.
+%  \item You should accept the license (required by Eclipse for all plug-ins) and
+%click Next again to start the installation.
+%  \item After the downloading and installing everything, Eclipse will ask you is
+%you want to restart it. It is highly recommended that you choose Yes so that the
+%IDE can cleanly load the newly installed software.
+% \end{itemize}
+
+\subsubsection{EGit}
+
+The integration plug-in for Eclipse is called EGit. Since Indigo version,
+released in 2011, EGit is included in Eclipse. The actions related to EGit are
+available in you Project Explorer with the right click on your project under
+Team. EGit supports the synchronization view, change history browsing, branches,
+applying patches, etc.
+
+\subsection{PTF checkout}
+
+Checking out the repository directly is possible on local systems and some big
+machines, e.g., Taurus, but not on SuperMUC. For SuperMUC, a tunnel has to be
+created through an allowed machine and now a SuperMUC can be mounted to a
+directory on your local system with \texttt{sshfs} or a local directory can be
+synchronize to SuperMUC one with \texttt{rsync}.
+
+\subsubsection{Synchronizing with remote system}
+
+For the next steps the user has to specify parameters from the Table
+\ref{tab:TunnelMountOpts}. Please note that after the tunnel is set only
+mounting or synchronizing procedure has to be done, not both.
+
+\paragraph{Tunnel} setup
+
+A tunnel can be created with the following command:
+
+ssh -f -N -L \ptfbrackets{port}:\ptfbrackets{host}:22
+\ptfbrackets{username}@\ptfbrackets{hostname}
+
+\paragraph{Mounting} directory
+
+Mounting a directory can be done with the following command:
+
+sshfs ptfbrackets{host\_username}@localhost:Periscope
+ptfbrackets{directory} -p ptfbrackets{port}\\
+-o idmap=user -o uid=\$(id -u) -o gid=\$(id -g) -o workaround=rename
+
+\paragraph{Synchronizing} directory
+
+Synchronizing your local directory to SuperMUC can be done with the following
+command:
+
+rsync -a -{}-progress -{}-rsh="ssh -p\ptfbrackets{port}" \ptfbrackets{directory}\\
+\url{<host\_username>@localhost:~}
+
+
+ \begin{table}
+  \begin{center}
+   \begin{tabular}{ | l | l | }
+     \hline
+     port           & the host port number to which port 22 connects\\ \hline
+     host           & the host name of the destination machine,\\
+                   & e.g., supermuc.lrz.de\\ \hline
+     username       & the username of the middle machine, e.g., mijakovi\\ \hline
+     hostname       & the host name of the middle machine,\\
+                    & e.g., atbode71.lrr.in.tum.de\\ \hline
+     host\_username & the destination machine username, e.g., ga57piy2\\ \hline
+     directory      & the location on your local system where to mount\\ \hline
+   \end{tabular}
+  \end{center}
+  \caption{Tunnel, mount and synchronize options.}\label{tab:TunnelMountOpts}
+ \end{table}
+
+\subsubsection{Checkout}
+
+The Periscope repository is located in \ptfrepo.
+
+Checking out the repository can be done from the command line by executing the
+command:
+
+\texttt{git clone \ptfrepo  Periscope}
+
+it can also be done by using the Git integration plug-in for Eclipse - EGit:
+
+ \begin{itemize}
+  \item Right-Click on your Project Explorer window, or view, and press on
+Import...
+  \item In Select window select Git $\rightarrow$ Projects from Git. Click Next.
+  \item Select Clone URI. Click Next.
+  \item Write the repository URL location \ptfrepo and enter your credentials,
+i.e., username and password. Click Next.
+  \item Select branches to clone from remote repository. Click Next.
+  \item Configure the local storage location for Periscope. Click Next.
+  \item The cloning procedure will start. When the cloning procedure is over the
+dialog asks you to select the wizard for project import. Select Import as general
+project. Click Next.
+  \item Type the project name. Click Finish.
+ \end{itemize}
+
+\section {Downloading PTF (Users)}
+
+The Periscope source can also be downloaded from Periscope web site and the
+latest version is located in \ptftarball. After downloading, simply extract the
+archive to folder (with tar xvjf PTF-latest.tar.bz).
+
+The source code can be downloaded from the command line by executing the
+command:
+
+\texttt{wget \ptftarball}
+
+\section{Compiling and installing PTF}
+
+\subsection{Mandatory dependencies}
+
+Dependencies for this step are divided into dependencies required to bootstrap
+and configure, to generate parsers, and to compile PTF.
+
+%Dependencies for this step are divided into dependencies required to bootstrap
+%and configure, to generate parsers, the monitoring system and to compile PTF.
+
+\subsubsection{The GNU build system (Autotools)}
+%Libtool 2.4.2, Autoconf 2.69, Automake 1.12.4, M4 1.4.17
+
+The GNU build system tools used to bootstrap and configure PTF are Libtool,
+Autoconf, Automake and M4 macro system.
+
+Autotools packages are available as modules on some systems, like SuperMUC or
+Taurus; from a distribution package management system, like Debian's APT; or as
+source directly from a tool developers webpage.
+
+SuperMUC and Taurus already have modules for Autotools which can be loaded by
+executing:
+
+\texttt{module load autotools}
+
+To install Autotools packages Libtool, Autoconf, Automake and M4 through Debian's
+APT execute the following commands:
+
+\texttt{sudo apt-get install libtool autoconf automake m4}
+% installs libtool 2.4.2, autoconf 2.69-6, automake 1.14.1-2 and m4 1.4.17-2 on Ubuntu 14.04LTS
+
+To install them from source first download the packages and unpack them in a
+per-tool temporary directory. During the installation procedure please install
+the tools in order provided in subsection name. It is advisable, but not
+mandatory, to install them in the same directory under your home directory.
+To minimize possibility of incompatibility, please install the following tool
+versions in that order:
+
+ \begin{itemize}
+  \item Libtool 2.4.2
+  \item Autoconf 2.69
+  \item Automake 1.12.4
+  \item M4 1.4.17
+ \end{itemize}
+
+Then, run the configure script:
+
+\texttt{./configure -{}-prefix=\installloc{autotools}} \\
+
+Then run:
+
+\texttt{make}
+%make check
+
+When make has finished compiling the tool then install it by executing:
+
+\texttt{make install}
+
+Repeat the same procedure for all of the tools.
+%make installcheck
+%make clean
+%make uninstall
+
+%Maybe system-wide should be replaced with by GNU convention, i.e., /bin, /sbin, /usr/bin, /usr/sbin, /usr/local/bin, /usr/local/sbin
+If you have installed the GNU build system tools under your home directory and
+not system-wide you should specify its binaries location in the PATH environment
+variable. To configure the location with bash shell execute the following
+command:
+
+\texttt{export PATH=\installloc{autotools/bin}:\$PATH}
+
+Instead of autotools modules Periscope also works with version of Autotools used
+for Score-P described in the next subsection.
+
+\input{ptf_installation_common.tex}
+
+\subsubsection{Libraries: ACE, Boost}
+
+\paragraph{ACE v5.7+} library
+%Here comes instruction to install ace. %Versions 5.7-6.1
+
+ACE is available as a module on SuperMUC, from Debian's APT and as source from
+the developers webpage.
+
+SuperMUC already has an ACE module which can be loaded by executing:
+
+\texttt{module load ace/6.0}
+
+To install ACE through Debian's APT execute the following command:
+
+\texttt{apt-get install libace-dev}
+
+To install from source first download it.
+The location of source is:
+
+\aceurl
+
+Download and untar the tarball with source.
+Enter the directory where source is located.
+Export the location of the ACE source. It can be done with the following command:
+
+\texttt{export ACE\_ROOT=\$PWD}
+
+Create a configuration file, \$ACE\_ROOT/ace/config.h, that includes the
+appropriate platform/compiler-specific header configurations from the ACE source
+directory. For example:
+
+\#include "ace/config-linux.h"
+
+Create a build configuration file,
+\$ACE\_ROOT/include/makeinclude/platform\_macros.GNU, that contains the
+appropriate platform/compiler-specific Makefile configurations. For example:
+
+\texttt{include \$(ACE\_ROOT)/include/makeinclude/platform\_linux.GNU}
+
+Set the installation prefix in platform\_macros.GNU.
+
+\texttt{INSTALL\_PREFIX = \$(HOME)/install/ACE}
+
+Because ACE builds shared libraries, you need to set LD\_LIBRARY\_PATH (or
+equivalent for your platform) to the directory where binary version of the ACE
+library is built into. To specify the location, execute and add the following
+command into your startup bash script, i.e., \$HOME/.bashrc:
+
+\texttt{export LD\_LIBRARY\_PATH=\installloc{ACE/lib}:\$LD\_LIBRARY\_PATH}
+
+Run make to compile.
+
+When compilation process finishes install ACE with make install command.
+
+
+% Removed in Version 6.1 and will be removed from the installation guide.
+
+% I had issues installing ACE 6.2 on Ubuntu 14.04LTS.
+
+% Versions up to 6.1.
+
+% Enter the directory where the source is located. (cd ACE\_wrappers)
+% mkdir build \&\& cd build
+
+% ../configure -{}-prefix=\$HOME/install -{}-disable-ace-examples -{}-disable-ace-tests -{}-enable-static -{}-disable-shared -{}-disable-ssl -{}-enable-acexml=no -{}-disable-debug
+
+% export DEBUG=0
+
+% cd ace (this will only build the ACE library without the tests and other tools!)
+
+% make \&\& make install
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\paragraph{Boost} library
+%Here comes instruction to install Boost.
+
+Boost is available as a module on SuperMUC and Taurus, from Debian's APT and as
+source from the developers webpage.
+
+SuperMUC already has an ACE module which can be loaded by executing:
+
+\texttt{module load boost/1.47\_gcc}
+
+Taurus also has an ACE module which can be loaded by executing:
+
+\texttt{module load boost/1.54.0-gnu4.6}
+
+To install Boost through Debian's APT execute the following command:
+
+\texttt{sudo apt-get install libboost1.55-tools-dev}
+
+To install from the source first download it.
+The location of the source is:
+
+\boosturl
+
+Download and untar the tarball with the source.
+Enter the directory where the source is located.
+
+\texttt{./bootstrap.sh -{}-prefix=\installloc{boost}}
+
+\texttt{./b2 install}
+
+If you have installed Boost under your home directory and not system-wide you
+should specify its location in the LD\_LIBRARY\_PATH environment variable. To
+specify the location add the following command into your startup bash script,
+i.e., \$HOME/.bashrc:
+
+\texttt{export LD\_LIBRARY\_PATH=\installloc{boost/lib}:\$LD\_LIBRARY\_PATH}
+
+%When the tuning substrate becames a part of Score-P.
+%\subsection{Score-P}
+%To install Score-P on Debian-based Linux execute the command:
+%
+%sudo apt-get install scorep
+%
+%SuperMUC and Taurus already have modules for Score-P which can be loaded by
+%executing:
+%
+%module load scorep
+
+\subsection{PTF}
+\subsubsection{Bootstrap (Developers only)}
+To prepare PTF for compilation, first you have to bootstrap. Please make sure
+that you have Git in your PATH as bootstrap requires it. Bootstrap is done by
+executing the command in the source directory of Periscope:
+
+\texttt{./boostrap}
+
+Bootstrap now generates plugins revision numbers, prepares macros and generates
+Makefile.in files.
+
+\subsubsection{Configure}
+After bootstrapping, you have to configure PTF by selecting which options to
+use and compile. Table \ref{tab:PTFbuildconfig} provides a list of PTF build
+configure options. The complete, more detailed, list of options can be found in
+the user manual.
+
+Location of the component headers and libraries are searched in the default
+location specified by GNU convention. For headers this location is
+/usr/local/include, while for libraries it is /usr/local/lib(64).
+If they are not found on the default location, they have to be specified with
+-{}-with-\ptfbrackets{component\_name}-[include/lib] options.
+Modules often provide predefined environment variables for each component with
+location of its include and lib directories, e.g., BOOST\_INCDIR and
+BOOST\_LIBDIR.
+This can be checked with module display \ptfbrackets{component\_name}.
+
+For BOOST it can be checked by executing:
+
+module display boost
+
+\begin{table}[h]
+\begin{center}
+  \begin{tabular}{ | l | l | }
+    \hline
+    -{}-prefix                & Location where PTF is to be installed.\\ \hline
+    -{}-with-mpi              & Select the MPI compiler suite to build PTF.\\
+                              & Available options are: mpich2$|$impi$|$openmpi.\\ \hline
+    -{}-with-ace-include      & Location of the ACE headers.\\ \hline
+    -{}-with-ace-lib          & Location of the ACE libraries.\\ \hline
+    -{}-with-boost-include    & Location of the Boost headers.\\ \hline
+    -{}-with-boost-lib        & Location of the Boost libraries.\\ \hline
+    -{}-enable-tda            & Enables usage of Topological Data Analysis\\
+                              & (TDA) library. Used by Performance\\
+                              & Dynamics strategies.\\ \hline
+    -{}-with-tda-include      & Location of the TDA headers.\\ \hline
+    -{}-with-tda-lib          & Location of the TDA libraries.\\ \hline
+    -{}-enable-sqlite3        & Enables usage of SQLite3 library.\\ \hline
+    -{}-with-sqlite3-include  & Location of the SQLite3 headers.\\ \hline
+    -{}-with-sqlite3-lib      & Location of the SQLite3 libraries.\\ \hline
+    -{}-with-starter          & Select the default starter.\\
+                              & Available options are: \textcolor{red}{linux-ia64$|$}\\
+                              & \textcolor{red}{aix-ibmp575$|$linux-ibmp575$|$linux-bgp$|$}\\
+                              & \textcolor{red}{interactive$|$fastinteractive$|$supermuc}.\\ \hline
+    -{}-enable-developer-mode & Enables the developer mode.\\ \hline
+    -{}-enable-fortranwrapper & Enables generation of different Fortran\\
+                              & wrappers. Available options are:\\
+                              & single\_underscore$|$double\_underscore$|$caps$|$\\
+                              & nocaps.\\ \hline
+  \end{tabular}
+\end{center}
+\caption{PTF build configure options.}\label{tab:PTFbuildconfig}
+\end{table}
+
+Before configuring please create a build directory, e.g., in Periscope source
+directory.
+
+From the build directory start configure script with the following options:
+
+\texttt{../configure -{}-prefix=\installloc{periscope}}
+
+There are also some optional capabilities which require external dependencies.
+They can be enabled by providing -{}-enable-\ptfbrackets{component\_name}.
+If these components are installed under your home directory or some non-standard
+location you should specify location of its headers and libraries.
+For example if we want to enable papi we should prepend the configure command
+with:
+
+\subsubsection{Compile and install}
+To compile please execute:
+
+\texttt{make -j 8}
+
+To install please execute:
+
+\texttt{make install}
+
+If you have installed Periscope under your home directory and not system-wide you
+should specify its binaries location in the PATH environment variable. To
+specify the location add the following command into your startup bash script,
+i.e., \$HOME/.bashrc:
+
+\texttt{export PATH=\installloc{periscope/bin}:\$PATH}
+
+
+\subsubsection{Optional: Generating and installing documentation}
+To generate the documentation please execute:
+
+\texttt{make doc}
+
+To install the documentation please execute:
+
+\texttt{make doc-install}
+
+\chapter{Score-P}
+
+\section{Checking out Score-P (Developers)}
+
+\subsection{Dependencies}
+
+The instructions for developers on how to checkout Score-P are described here.
+The procedure is separated in two steps, mandatory and optional. The first part,
+describes how to install Subversion, revision control tool used by Score-P. The
+second part, gives instructions for Eclipse users on how to install the Eclipse
+IDE and the revision control tool for it.
+
+\subsubsection{Subversion}
+To install Subversion on Debian-based Linux execute the command:
+
+\texttt{sudo apt-get install subversion}
+
+SuperMUC already has modules for Subversion which can be loaded by executing:
+
+\texttt{module load subversion}
+
+Taurus also has modules for Subversion which can be loaded by executing:
+
+\texttt{module load svn}
+
+\subsection{Optional: Eclipse users dependencies}
+Eclipse users have possibility to checkout PTF code directly from Eclipse by
+using the EGit plugin. To run Eclipse and the EGit plugin the Java runtime
+environment is required. Installing Java can easily be done from your
+distribution's package management. On Ubuntu this can be by adding
+ppa:webupd8team/java repository with sudo rights to apt package manager. This is
+done by executing the command:
+
+\texttt{sudo add-apt-repository ppa:webupd8team/java}
+
+When the java repository was added to the apt package management, update the
+package management information and install the package
+oracle-java\ptfbrackets{X}-installer, where X is prefered version.
+This is done by executing the commands:
+
+\texttt{sudo apt-get update}
+
+\texttt{sudo apt-get install oracle-java\ptfbrackets{X}-installer}
+
+Since Java is installed, now Eclipse can also be installed.
+
+ \begin{itemize}
+  \item Go to \eclipseurl and choose the distribution package that best fits
+your needs. The most common selection would be the Eclipse IDE for C/C++
+Developers (or Eclipse for Parallel Application Developers).
+  \item You will be redirected to a web site from which you can download the
+chosen archive package.
+
+  \item After downloading, simply extract the archive to a folder.
+  \item This completes the installation of Eclipse. The IDE is started by
+running ./eclipse from within the extracted folder, or add it to your PATH.
+ \end{itemize}
+
+To specify the location add the following command into your startup bash script,
+i.e., \$HOME/.bashrc:
+
+\texttt{export PATH=\installloc{eclipse}:\$PATH}
+\subsubsection{Subversive}
+
+\eclipseplugin{Subversive}{\subversiveurl}{Subversive SVN Team Provider Plugin}
+
+%==========Without LaTeX macro==========%
+% \begin{itemize}
+%  \item Add the update site of the Subversive
+%  \begin{itemize}
+%   \item Select Help$\rightarrow$Install New Software menu.
+%   \item Click on Add at the top right side of the window to display a dialog
+%for adding new update sites.
+%   \item Enter Subversive for the Name field.
+%   \item Enter \subversiveurl for the Location field.
+%   \item Click OK to add it and go back to the previous window.
+%  \end{itemize}
+%  \item Select the update site by entering Subversive in the Work with field.
+%  \item Select the Subversive SVN Team Provider Plugin from the table with the
+%provided features and click Next.
+%  \item Eclipse will calculate all dependencies and then it will show a list of
+%all plug-ins to be installed. Click Next to confirm this selection and continue.
+%  \item You should accept the license (required by Eclipse for all plug-ins) and
+%click Next again to start the installation.
+%  \item After the downloading and installing everything, Eclipse will ask you is
+%you want to restart it. It is highly recommended that you choose Yes so that the
+%IDE can cleanly load the newly installed software.
+% \end{itemize}
+
+\subsubsection{Subclipse}
+
+\eclipseplugin{Subclipse}{\subclipseurl}{Subclipse}
+
+%==========Without LaTeX macro==========%
+% \begin{itemize}
+%  \item Add the update site of the Subversive
+%  \begin{itemize}
+%   \item Select Help$\rightarrow$Install New Software menu.
+%   \item Click on Add at the top right side of the window to display a dialog
+%for adding new update sites.
+%   \item Enter Subclipse for the Name field.
+%   \item Enter \subclipseurl for the Location field.
+%   \item Click OK to add it and go back to the previous window.
+%  \end{itemize}
+%  \item Select the update site by entering Subclipse in the Work with field.
+%  \item Select the Subclipse from the table with the provided features and click
+%Next.
+%  \item Eclipse will calculate all dependencies and then it will show a list of
+%all plug-ins to be installed. Click Next to confirm this selection and continue.
+%  \item You should accept the license (required by Eclipse for all plug-ins) and
+%click Next again to start the installation.
+%  \item After the downloading and installing everything, Eclipse will ask you is
+%you want to restart it. It is highly recommended that you choose Yes so that the
+%IDE can cleanly load the newly installed software.
+% \end{itemize}
+
+\section{Score-P with tuning support checkout}
+The Score-P with tuning support repository is located in
+\scoreprepo.
+
+Checking out the repository can be done from the command line or by using the Eclipse plug-in.
+
+\texttt{svn co \scoreprepo scorep}
+
+\section {Downloading Score-P (Users)}
+
+The Score-P with tuning support source can also be downloaded from Periscope web
+site and the latest version is located in \scoreptarball. After downloading,
+simply extract the archive to folder (with tar xvjf scorep-tuning-latest.tar.bz).
+
+The source code can be downloaded from the command line by executing the
+command:
+
+\texttt{wget \scoreptarball}
+
+\section{Compiling and installing Score-P}
+
+\subsection{Mandatory dependencies}
+
+Dependencies for this step are divided into dependencies required to boot-
+strap and configure, to generate the parser, and to compile PTF.
+
+\input{ptf_installation_common.tex}
+
+\subsubsection{MPI}
+
+MPI has many implementations, like OpenMPI and MPICH.
+
+MPI implementations are available directly from the developers webpage to be
+compiled from source, from a distribution package management system or as a
+module on some systems.
+
+SuperMUC already has an MPI, MPICH2 based, module which can be loaded by
+executing:
+
+\texttt{module load mpi.ibm}
+
+Taurus also has an MPI, OpenMPI based, module which can be loaded by executing:
+
+\texttt{module load bullxmpi}
+
+To install MPICH2 through Debian's APT execute the following command:
+
+\texttt{sudo apt-get install mpich2}
+
+\paragraph{MPICH2} MPI implementation
+
+To install from the source first download it.
+The location of source is: \mpichurl
+
+Download and untar the tarball with source.
+Enter the directory where source is located.
+
+Configure the installation and specify the location where MPICH2 should be
+installed.
+
+\texttt{./configure -{}-prefix=\installloc{mpich2}}
+
+Then run:
+
+\texttt{make}
+
+When make has finished compiling then install it by executing:
+
+\texttt{make install}
+
+If you have installed MPICH2 under your home directory and not system-wide you
+should specify its location in the PATH and LD\_LIBRARY\_PATH environment
+variable. To specify the location add the following command into your startup
+bash script, i.e., \$HOME/.bashrc:
+
+\texttt{export PATH=\installloc{mpich2/bin}:\$PATH}
+
+\texttt{export LD\_LIBRARY\_PATH=\installloc{mpich2/lib}:\$LD\_LIBRARY\_PATH}
+
+\paragraph{OpenMPI} MPI implementation
+
+OpenMPI is available directly from the developers webpage to be compiled from
+source, from a distribution package management system or as a module on some
+systems.
+
+The location of source is:
+\openmpiurl
+
+Download and untar the tarball with the source.
+Enter the directory where source is located.
+Create a build directory.
+
+Configure the installation and specify the location where OpenMPI should be installed.
+
+\texttt{./configure -{}-prefix=\installloc{openmpi}}
+
+Then run:
+
+\texttt{make -j 4 all}
+
+When make has finished compiling then install it by executing:
+
+\texttt{make install}
+
+If you have installed OpenMPI under your home directory and not system-wide you
+should specify its location in the PATH and LD\_LIBRARY\_PATH environment
+variable. To specify the location add the following command into your startup
+bash script, i.e., \$HOME/.bashrc:
+
+\texttt{export PATH=\installloc{openmpi/bin}:\$PATH}
+
+\texttt{export LD\_LIBRARY\_PATH=\installloc{openmpi/lib}:\$LD\_LIBRARY\_PATH}
+
+Libraries to fetch counters are optional.
+
+Libraries to fetch counters are used to access counters in components of a
+physical machine. They cannot be accessed in the VM and therefore should not be
+installed in the VM.
+
+
+\subsubsection{(Optional) Counter libraries: PAPI, ENOPT, HDEEM}
+\paragraph{PAPI} library
+%Here comes instruction to install papi.
+
+PAPI is necessary to read performance counters.
+
+PAPI is available as a module on SuperMUC and Taurus, from Debian's APT and as
+source from the developers webpage.
+
+SuperMUC and Taurus already have PAPI modules which can be loaded by executing:
+
+\texttt{module load papi}
+%\texttt{module load bullxmpi papi-bull}
+
+To install PAPI package through Debian's APT execute the following commands:
+
+\texttt{sudo apt-get install papi}
+
+To install from source first download it.
+The location of source is:
+
+\papiurl
+
+Download and untar the tarball with source.
+
+Enter the directory where source is located.
+
+Configure the installation and specify the location where PAPI should
+be installed. You should not create a separate build directory.
+
+\texttt{./configure -{}-prefix=\installloc{papi}}
+
+Then run:
+
+\texttt{make}
+
+When make has finished compiling then install it by executing:
+
+\texttt{make install}
+
+If you have installed PAPI under your home directory and not system-wide you
+should specify its location in the PATH and LD\_LIBRARY\_PATH environment
+variable. To specify the location add the following command into your startup
+bash script, i.e., \$HOME/.bashrc:
+
+\texttt{export PATH=\installloc{papi/bin}:\$PATH}
+
+\texttt{export LD\_LIBRARY\_PATH=\installloc{papi/lib}:\$LD\_LIBRARY\_PATH}
+
+%Should be moved into the plugin specific instructions.
+\paragraph{\textcolor{red}{ENOPT}} library
+%Here comes instruction to install ENOPT.
+
+ENOPT is necessary to read energy consumption of a CPU and manipulate its
+frequency and governors. It is used by Score-P ENOPT metric and tuning plugins.
+
+ENOPT library is only available as a module on SuperMUC.
+
+ENOPT module can be loaded by executing:
+
+\texttt{module load enopt}
+
+\paragraph{\textcolor{red}{HDEEM}} library
+%Here comes instruction to install HDEEM.
+
+HDEEM is necessary to read energy consumption on Taurus. It is used by Score-P
+HDEEM metric plugins.
+
+HDEEM module can be loaded by executing:
+
+\texttt{module load hdeem}
+
+\subsection{Score-P}
+
+\subsubsection{Bootstrap (Developers only)}
+
+To prepare Score-P for compilation, first you have to bootstrap. Please make
+sure that you have Subversion in your PATH as bootstrap requires it. Bootstra is
+done by executing the command in the source directory of Score-P:
+
+./bootstrap
+
+Bootstrap now prepares macros and generates Makefile.in of Score-P and some
+tools it depends like cube, opari2 and otf2.
+
+\subsubsection{Configure}
+After bootstrapping, you have to configure Score-P by selecting whihc options to
+use and compile. Table \ref{tab:ScorePbuildconfig} provides a list of Score-P
+build configure options relevant for PTF. The complete, more detailed, list of
+options can be found in the Score-P user manual.
+
+Location of the component headers and libraries are searched in the default
+location specified by GNU convention. If they are not found on the default
+location, they have to be specified with
+\texttt{-{}-with-\ptfbrackets{component\_name}-(include/lib)} options.
+Modules often provide predefined environment variables for components with the
+location of its include and lib directories, e.g., PAPI\_INC and PAPI\_LIB. This
+can be checked with module display \ptfbrackets{component\_name}.
+
+For PAPI it can be checked by executing:
+
+module display boost
+\begin{table}[h]
+\begin{center}
+  \begin{tabular}{ | l | l | }
+    \hline
+    -{}-prefix                      & Location where Score-P is to be installed.\\ \hline
+    -{}-with-machine-name           & The default machine name used in profile and trace output.\\ 
+                                    & Can be overridden at measurement time by setting the\\
+                                    & environment variable SCOREP\_MACHINE\_NAME\\ \hline
+    -{}-with-nocross-compiler-suite & The compiler suite used to build Score-P.\\
+                                    & Available options are: gcc$|$ibm$|$intel$|$pgi$|$studio\\ \hline
+    -{}-with-mpi                    & Select the MPI compiler suite to build Score-P.\\
+                                    & Available options are: bullxmpi$|$hp$|$ibmpoe$|$intel$|$\\
+                                    & intel2$|$intel3$|$intelpoe$|$lam$|$mpibull2$|$mpich$|$mpich2$|$\\
+                                    & mpich3$|$openmpi$|$platform$|$scali$|$sgimpt$|$sun.\\ \hline
+    -{}-without-gui                 & Disables the Cube GUI. GUI is enabled by default.\\ \hline
+    -{}-enable-static               & Enable Score-P static libraries. Enabled by default.\\ \hline
+    -{}-enable-shared               & Enable Score-P shared libraries. Disabled by default.\\ \hline
+    -{}-with-papi-include           & Location of the PAPI headers.\\ \hline
+    -{}-with-papi-lib               & Location of the PAPI libraries.\\ \hline
+    -{}-enable-backend-test-runs    & Enables backend test runs.\\ \hline
+    -{}-enable-debug                & Enables additional debug output and checks.\\ \hline
+  \end{tabular}
+\end{center}
+\caption{PTF build configure options.}\label{tab:ScorePbuildconfig}
+\end{table}
+
+../configure -{}-prefix=\installloc{scorep} -{}-enable-debug
+-{}-with-nocross-compiler-suite=gcc -{}-enable-backend-test-runs
+-{}-with-mpi=\ptfbrackets{mpi\_version} -{}-without-gui
+
+On SuperMUC and Taurus mpi\_version should be set to intelpoe and bullxmpi, respectively.
+
+\subsubsection{Compile and install}
+
+To compile please execute:
+
+\texttt{make -j 8}
+
+%make check
+
+To install please execute:
+
+\texttt{make install}
+
+If you have installed Score-P under your home directory and not system-wide you
+should specify its binaries location in the PATH environment variable. To
+specify the location add the following command into your startup bash script,
+i.e., \$HOME/.bashrc:
+
+export PATH=\installloc{scorep/bin}:\$PATH
+
+\subsubsection{Score-P metric and tuning plugins}
+
+Score-P provides a flexible support for new metric and tuning sources in the
+sense of plugins. On SuperMUC and Taurus there are system-specific metric and
+tuning plugins available, ENOPT and HDEEM, respectively.
+
+Metric plugins are available on GitHub \pluginsurl.
+
+\paragraph{\textcolor{red}{CMake}} build system
+
+To install CMake on Debian-based Linux execute the command:
+
+sudo apt-get install cmake
+
+SuperMUC and Taurus already have modules for CMake which can be loaded by
+executing:
+
+module load cmake
+
+\paragraph{ENOPT plugins (SuperMUC only)} metric and tuning
+%From the build directory start configure script with the following options:
+Configure the installation and specify the location where the plugin should be
+installed.
+
+%cmake -DENOPT\_INC\_DIR=\$ENOPT\_BASE/include -DENOPT\_STATIC=OFF ../
+
+To compile please execute:
+
+\texttt{make}
+
+To install please execute:
+
+\texttt{make install}
+
+The plugin is installed under \installloc{scorep/lib/plugins}.
+
+If you have installed ENOPT under your home directory and not system-wide you
+should specify its location in the LD\_LIBRARY\_PATH environment variable. To
+specify the location add the following command into your startup bash script,
+i.e., \$HOME/.bashrc:
+
+\texttt{export LD\_LIBRARY\_PATH=\installloc{scorep/lib/plugins}:\$LD\_LIBRARY\_PATH}
+
+\paragraph{\textcolor{red}{HDEEM plugin (Taurus only)}} metric
+
+Configure the installation and specify the location where the plugin should be
+installed.
+
+cmake ../
+
+To compile please execute:
+
+\texttt{make}
+
+To install please execute:
+
+\texttt{make install}
+
+The plugin is installed under \installloc{scorep/lib/plugins}.
+
+If you have installed ENOPT under your home directory and not system-wide you
+should specify its location in the LD\_LIBRARY\_PATH environment variable. To
+specify the location add the following command into your startup bash script,
+i.e., \$HOME/.bashrc:
+
+\texttt{export LD\_LIBRARY\_PATH=\installloc{scorep/lib/plugins}:\$LD\_LIBRARY\_PATH}
+
+\paragraph{OpenMP} tuning
+OpenMP available on all systems.
+
+Configure the installation and specify the location where the plugin should be
+installed.
+
+cmake -DENOPT\_INC\_DIR=\$ENOPT\_BASE/include -DENOPT\_STATIC=OFF ../
+
+To compile please execute:
+
+\texttt{make}
+
+To install please execute:
+
+\texttt{make install}
+
+The plugin is installed under \installloc{scorep/lib/plugins}.
+
+If you have installed ENOPT under your home directory and not system-wide you
+should specify its location in the LD\_LIBRARY\_PATH environment variable. To
+specify the location add the following command into your startup bash script,
+i.e., \$HOME/.bashrc:
+
+\texttt{export LD\_LIBRARY\_PATH=\installloc{scorep/lib/plugins}:\$LD\_LIBRARY\_PATH}
+
+\chapter{Running PTF}
+
+\section{Periscope Configuration File}
+%This section has to be updated as the configuration file was updated.
+The configuration of Periscope can be loaded from a configuration file. Its name
+is .periscope. It has to be located in your home directory. The precedence is:
+command line parameters, environment variables, specification in the
+configuration file, and finally defaults hardcoded in program's sources.
+
+\begin{center}
+ \begin{longtable}{|l|p{8cm}|} % 3 cols (left, ctr, right); vert. lines
+  \hline % draw horizontal line
+  Option & Description \\
+  \hline
+  REGSERVICE\_HOST & Specifies the host of the registry. It is ignored by the
+  registry itself. The host will be the one were the registry is started. \\
+  \hline
+  REGSERVICE\_PORT & Specifies the port at which the registry is waiting for
+  connections. \\
+  \hline
+  APPL\_BASEPORT & Specifies the base port for the application monitor. The
+  monitor linked to each process will listen at the baseport+rank. \\
+  \hline
+  AGENT\_BASEPORT & Specifies the base port for the frontend and the agent
+  hierarchy. The base port will be used by the frontend. The agents will
+  increment the baseport to obtain unique ports. \\
+  \hline
+ \end{longtable}
+\end{center}
+
+%\section{(Optional) Periscope GUI for Eclipse}
+%Periscope provides a convenient graphical user interface aimed at enhancing the
+%analysis and the post-processing of the collected performance data. It is
+%developed as a plug-in for Eclipse in order to integrate with other available
+%programming tools such as C/C++ Development Environment (CDT), Fortran IDE
+%(Photran), Remote System Explorer (RSE), etc. It currently consists of three
+%interconnected views that present the detected properties and provide an
+%overview of the instrumented code regions.\\
+%internal Update Manager of Eclipse. This also makes it easier to change to a
+%newer version whenever available. 
+%
+%\eclipseplugin{Periscope GUI}{\ptfguiurl}{Periscope Toolkit}
+
+%==========Without LaTeX macro==========%
+%Following are the steps that have to be done to install Eclipse GUI for Periscope:
+%
+% \begin{itemize}
+%  \item Add the update site of the plugin:
+%  \begin{itemize}
+%   \item Select Help$\rightarrow$Install New Software menu.
+%   \item Click on Add at the top right side of the window to display a dialog
+%for adding new update sites.
+%   \item Enter Periscope GUI for the Name field.
+%   \item Enter \ptfguiurl for the Location field.
+%   \item Click OK to add it and go back to the previous window.
+%  \end{itemize}
+%  \item Select the update site by entering Periscope GUI in the Work with field.
+%  \item Select the Periscope Toolkit from the table with the provided features and
+%click Next.
+%  \item Eclipse will calculate all dependencies and then it will show a list of
+%all plug-ins to be installed. Click Next to confirm this selection and continue.
+%  \item You should accept the license (required by Eclipse for all plug-ins) and
+%click Next again to start the installation.
+%  \item After the downloading and installing everything, Eclipse will ask you is
+%you want to restart it. It is highly recommended that you choose Yes so that the
+%IDE can cleanly load the newly installed software.
+% \end{itemize}
+
+\section{(Optional) PAThWaY for Eclipse}
+Minimum requirements for PAThWay are Eclipse with PTP 7.0.0. Eclipse for Parallel
+Application Developers Eclipse for Parallel Application Developers, version 4.3
+or later, comes with it.
+
+Prerequisites:
+
+Install libwebkitgtk: \texttt{sudo apt-get install libwebkitgtk-1.0-0}
+
+\eclipseplugin{PAThWay}{\pathwayurl}{Periscope Toolkit}
+
+%==========Without LaTeX macro==========%
+% \begin{itemize}
+%  \item Add the update site of the plugin:
+%  \begin{itemize}
+%   \item Select Help$\rightarrow$Install New Software menu.
+%   \item Click on Add at the top right side of the window to display a dialog for
+%adding new update sites.
+%   \item Enter PAThWay for the Name field.
+%   \item Enter \pathwayurl for the Location field.
+%   \item Click OK to add it and go back to the previous window.
+%  \end{itemize}
+%  \item Select the update site by entering Periscope GUI in the Work with field.
+%  \item Select the Periscope Toolkit from the table with the provided features and
+%click Next.
+%  \item Eclipse will calculate all dependencies and then it will show a list of
+%all plug-ins to be installed. Click Next to confirm this selection and continue.
+%  \item You should accept the license (required by Eclise for all plug-ins) and
+%click Next again to start the installation.
+%  \item After the downloading and installing everything, Eclipse will ask you is
+%you want to restart it. It is highly recommended that you choose Yes so that the
+%IDE can cleanly load the newly installed software.
+% \end{itemize}
+
+\end{document}

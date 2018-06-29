@@ -1,0 +1,41 @@
+%{
+#include <iostream>
+//#include "y.tab.h"
+#include "conf_parser.hpp"
+using namespace std;
+#define YY_DECL extern "C" int yylex()
+int line_num = 1;
+%}
+%option noyywrap
+%x VARS
+%x VALUES
+%x INTERVAL
+%x COMMENT
+%x LINE
+%x MPI_TYPE
+%x OPERAND
+%x PATHSTMT
+%%
+BEGIN LINE;
+
+
+<LINE>makefile_path				{return MAKEPATH;}
+<LINE>makefile_flags_var      	{return MAKEVAR;}
+<LINE>makefile_args 			{return MAKEARGS;}
+<LINE>makefile_selective      	{return MAKESELECT;}
+<LINE>application_src_path    	{return APPLSRC;}
+<LINE>search_algorithm        	{return SEARCHALG;}
+<LINE>tp						{return TP;}
+<LINE>\[                      	|
+<LINE>\]						|
+<LINE>\;						|
+<LINE>\=						|
+<LINE>"," 						{return yytext[0];}
+<LINE>"//"						{BEGIN COMMENT;}
+<COMMENT>"\n"           		{line_num++;BEGIN LINE;}
+<COMMENT>.              		{;}
+<LINE>[0-9]+					{yylval.ival = atoi(yytext); return INT; }
+<LINE>\"[\-a-zA-Z0-9\ /\.]+\"	{yylval.sval = strdup(yytext)+1; yylval.sval[strlen(yylval.sval)-1]='\0';return STRING;}
+.                            {
+       printf ("Error: (%c), Line %d\n", yytext[0], line_num); return (yytext[0]);}
+%%

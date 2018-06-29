@@ -1,0 +1,7 @@
+Version 1.1
+* Focused tuning via per-analysis (i.e., detection and tuning of the most time-consuming stage in the pipeline)
+* Ranges for tuning parameters
+
+Version 1.0
+* Tuning pipeline patterns using exhaustive search 
+

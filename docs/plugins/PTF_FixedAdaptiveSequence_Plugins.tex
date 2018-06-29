@@ -1,0 +1,166 @@
+\documentclass[11pt,a4paper, oneside]{book} %twoside,
+
+\usepackage{hyperref}
+\usepackage{color}
+%\usepackage{amssymb}
+%Used for tildes urls
+\usepackage{url}
+%Used for longtables
+\usepackage{longtable}
+\usepackage{graphicx}
+
+
+%Used for having noidentation for paragraphs
+%and vertical spacing between them
+\usepackage{parskip}
+
+\usepackage{listings}
+	
+\newcommand{\draft}[1]{\textcolor{blue}{#1}}
+\newcommand{\hint}[1]{\textcolor{OliveGreen}{[{\it#1}]}}
+\newcommand{\fishy}[1]{\textcolor{red}{#1}}
+\newcommand{\comment}[1]{\marginpar{\scriptsize{\textcolor{red}{#1}}}}
+\newenvironment{code}%
+{
+\addtolength{\leftskip}{0.5cm}}%
+{
+
+}
+
+\begin{document}
+
+\title{\includegraphics[width=4cm]{../images/Ptf_LogoBlau}\\ \vspace{1cm}
+\textsf{\bf \huge PTF Fixed and Adaptive sequence Plugins\\ User's Guide}\\
+       \normalsize PTF Version: 1.1\\
+       Fixed sequence Plugin Version: 1.0\\
+       Adaptive sequence Plugin Version: 1.0}
+\author{Robert Mijakovi\'{c}}
+\date{13.04.2015}
+
+\maketitle
+\tableofcontents
+
+\chapter{Introduction}
+
+Optimization of scientific codes requires optimizing many aspects of the application. As PTF plugin's optimizes only a single aspect of the application a special type of plugins, called meta-plugins, are developed. Meta-plugins act as an intermediate between PTF and the component plugins. Two meta-plugins are available with PTF, a fixed sequence and an adaptive sequence.
+
+The fixed sequence meta-plugin first loads the three component plugins. It then runs each plugin individually in the following fashion. First, the first plugin is selected and executed. When it finishes its execution the meta-plugin selects the next component plugin one after another. After all plugins has finished the meta-plugin reports the best combination of paramters to the user. Due to limitations of the current approach the next plugin does not take into account the best variant detected by the previous plugin.
+
+The other meta-plugin an adaptive sequence of the same component plugins. The approach for both plugins is basically the same except that the adaptive meta-plugin first run a pre-analysis that gathers the information for the criteria used to select the plugins to run.
+
+PTF focuses mostly on scientific codes and therefore meta-plugins incorporates component plugins that can be applied on any scientific code. The meta-plugins incorporate component plugins namely:
+\begin{enumerate}
+\item Compile flag Selection Plugin
+\item MPI Parameters Plugin
+\item DVFS Plugin
+\end{enumerate}
+
+As both meta-plugins run component plugins, it is highly recommended to check their user's guides for more information about how to configure and run them.
+
+\chapter{Quick Start}
+\section{Quick installation}
+Fixed and adaptive sequence plugins are being installed along with the Periscope Tuning Framework. Please refer to the \textit{PTF Installation Guide} for a complete description of the installation process.
+
+\section{Basic configuration}
+
+The fixed and adaptive sequence plugins run component plugins which might have special configuration files. Therefore, please consult user's guides of individual plugins.
+
+\subsection{Fixed sequence plugin}
+Due to its simlicity the fixed sequence plugin does not require the configuration file.
+
+\subsection{Adaptive sequence plugin}
+
+In order to use the adaptive sequence plugin, a set of configuration instructions are required. These instructions are read at execution time from the configuration file defined.
+
+To start with, copy the default configuration file \texttt{as\_config.cfg.default} into the folder containing the executable of your application and rename it to \texttt{as\_config.cfg}.
+\begin{center}
+\begin{minipage}{0.8\textwidth}
+\texttt{\$PSC\_ROOT/templates/cfs\_config.cfg.default $\rightarrow$ \$APP\_ROOT/.../cfs\_config.cfg}
+\end{minipage}
+\end{center}
+
+For example, for the NPB benchmarks\footnote{See \url{http://www.nas.nasa.gov/publications/npb.html} for downloading and documentation.}, copy the configuration file into the \texttt{bin} folder:
+\begin{center}
+\begin{minipage}{0.8\textwidth}
+    \texttt{>cp~\$PSC\_ROOT/templates/as\_config.cfg.default\\
+     NPB3.3-MZ/bin/as\_config.cfg}
+\end{minipage}
+\end{center}
+
+The adaptive sequence plugin decides which plugins to run based on the criteria. 
+
+The criteria used in the adaptive plugin are:
+
+\begin{itemize}
+  \item Compiler Flags Selection: The instructions per second rate is below a
+      given threshold.
+    \begin{equation}
+      Condition = 1 \quad \text{iff} \quad f_{\text{IPS}} < f_{\text{IPSThreshold}}
+    \end{equation}
+    \begin{equation}
+      Severity =  f_{\text{IPS}} = \frac{N_{\text{Instructions}}}{t_{\text{Exec}}}
+    \end{equation}
+  \item MPI Parameters: The execution time spent for MPI exceeds a certain
+      percentage of the phase execution time.
+    \begin{equation}
+      Condition = 1 \quad \text{iff} \quad f_{\text{MPI}} < f_{\text{MPIThreshold}}
+    \end{equation}
+    \begin{equation}
+      Severity =  f_{\text{MPI}} = \frac{t_{\text{MPIExec}}}{t_{\text{Exec}}}
+    \end{equation}
+  \item Dynamic Voltage and Frequency Scaling: The instructions per Joule rate
+      is below a given threshold.
+    \begin{equation}
+      Condition = 1 \quad \text{iff} \quad f_{\text{IPJ}} < f_{\text{IPJThreshold}}
+    \end{equation}
+    \begin{equation}
+      Severity =  f_{\text{IPJ}} = \frac{N_{\text{Instructions}}}{E_{\text{Exec}}}
+    \end{equation}
+\end{itemize}
+
+Edit \texttt{as\_config.cfg} to reflect thresholds for your application. 
+
+\begin{code}
+\texttt{\\
+threshold "compilerflags" = 1; \\
+threshold "dvfs" = 1; \\
+threshold "mpiparameters" = 0.1; \\}
+\end{code}
+
+\section{Running Meta-plugins}
+The fixed and adaptive sequence plugins runs as any other plugins within the Periscope Tuning Framework. They can be started using \texttt{psc\_frontend} (see also \textit{PTF User's Guide}) by setting the \texttt{tune} flag to \texttt{fixedseqeuence} or \texttt{adaptivesequence}.
+
+\begin{code}
+\texttt{--tune=fixedseqeuence}\\
+\texttt{--tune=adaptiveseqeuence}
+\end{code}
+
+For the NPB BT-MZ example with the adaptive sequence plugin, one would call from within the folder containing the execution file:
+\vspace*{0.5cm}
+
+\begin{center}
+\begin{minipage}{0.8\textwidth}
+\texttt{psc\_frontend --apprun="./bt-MZ.W" \\
+--mpinumprocs=1 --tune=adaptiveseqeuence \\
+--force-localhost --as-config="as\_config.cfg" --cfs-config="cfs\_config.cfs"}
+\end{minipage}
+\end{center}
+
+\vspace*{0.5cm}
+This will start the measurements and the CFS tuning strategy for the uninstrumented version of the BT benchmark using one process.
+
+Please note that the application \textit{has to be built} and the executable file passed to the \texttt{apprun} flag \textit{must exist} when calling \texttt{psc\_frontend}.
+
+\chapter{How To Use the Tuning Advice}
+Upon successful completion, the fixed and adaptive sequence plugin outputs a list of all tested scenarios for indidivudal component plugins as well as the id of the best scenario for each sub-plugin.
+
+For more information please check How to Use the Tuning Advice chapters of the component plugins.
+
+\chapter{Limitations and Known Issues}
+
+Due to limitations of the current approach the next plugin does not take into account the best variant detected by the previous plugin.
+
+For more information please check Limitations and Known Issues chapters of the component plugins.
+
+
+\end{document}

@@ -1,0 +1,91 @@
+#!/bin/bash
+ 
+periscope_srcdir="@PERISCOPE_SOURCE_DIRECTORY_IN_SCRIPTS@"
+version="@VERSION@"
+class=
+library=
+ 
+help () {
+    cat <<EOF
+	usage: psc_generate_bare_plugin_from_skeleton  -c <ClassName> -l <library-name>
+	 
+	This script generates an empty Perisocpe Tuning Framework plugin from a skeleton,
+	based on the desired class name and library name specified.
+	 
+	optional arguments:
+		-c           desired class name 
+		-l           desired library name 
+	  -h, --help   show this help message and exit
+	  -v version   Output version information and exit.
+EOF
+    exit
+}
+ 
+generate_plugin () {
+	echo "Attempting to generate a new plugin with the provided information:"
+	echo "Class name: $class"
+	echo "Library name: $library"
+	echo ""
+	echo "PTF source code location:"
+	echo "$periscope_srcdir"
+	echo "PTF version:"
+	echo "$version"
+	echo ""
+
+	directory="$periscope_srcdir/autotune/plugins/$library"
+	if [ -d $directory ]; then
+		echo "ERROR: $directory exists. Aborting the plugin creation process."
+		exit 1
+	else
+		echo "Generating new plugin at $directory..."
+	fi
+
+	echo ""
+	echo "Making the initial skeleton copy..."
+	cp -a $periscope_srcdir/autotune/plugins/skeleton $periscope_srcdir/autotune/plugins/$library
+
+	echo ""
+	echo "Processing the class header file..."
+	mv $periscope_srcdir/autotune/plugins/$library/include/SkeletonPlugin.h $periscope_srcdir/autotune/plugins/$library/include/$class.h
+	sed -i "s/SkeletonPlugin/${class}/g" $periscope_srcdir/autotune/plugins/$library/include/$class.h 
+	sed -i "s/SKELETON/${class}/g" $periscope_srcdir/autotune/plugins/$library/include/$class.h 
+
+	echo ""
+	echo "Processing the class implementation file..."
+	mv $periscope_srcdir/autotune/plugins/$library/src/SkeletonPlugin.cc $periscope_srcdir/autotune/plugins/$library/src/$class.cc
+	sed -i "s/SkeletonPlugin/${class}/g" $periscope_srcdir/autotune/plugins/$library/src/$class.cc
+	sed -i "s/SKELETON/${class}/g" $periscope_srcdir/autotune/plugins/$library/src/$class.cc
+
+	echo ""
+	echo "Processing the Makefile.am file..."
+	sed -i "s/SkeletonPlugin/${class}/g" $periscope_srcdir/autotune/plugins/$library/src/Makefile.am
+	sed -i "s/skeleton/${library}/g" $periscope_srcdir/autotune/plugins/$library/src/Makefile.am
+
+	echo ""
+	echo "Adding the new plugin to the build system..."
+	echo "include autotune/plugins/$library/src/Makefile.am" >> $periscope_srcdir/autotune/plugins/Makefile.am
+
+	echo ""
+	echo "Finished generating the new plugin."
+	echo "Once installed (after 'make install' on your build directory) it should be available "
+	echo "with the 'psc_frontend' command by passing the option: '--tune=$library' ."
+}
+ 
+if [ $# -lt 1 ] ; then
+   help
+fi
+ 
+while getopts "hvc:l:" arguments 
+do
+   case $arguments in
+   h) help; exit 0;;
+   v) echo $version; exit 0;;
+   c) class=$OPTARG;;
+   l) library=$OPTARG;;
+   \?) help; exit 0;;
+   esac
+done
+
+generate_plugin
+ 
+exit

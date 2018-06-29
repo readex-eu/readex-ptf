@@ -1,0 +1,2342 @@
+/*! \page tutorials Periscope Tuning Framework Tutorials
+
+\tableofcontents
+
+\section tutorial_intro_sec Introduction
+
+This is the Periscope Tuning Framework (PTF) developer's tutorials collection.  It is meant for developers of automatic tuners.  If you are a user looking to learn how to use any of the distributed automatic tuners, please refer to the <a href="http://periscope.in.tum.de/releases/latest/pdf/PTF_Users_Guide.pdf">user's guide</a> instead.
+
+In general, it is recommended (but not required) that you go through these tutorials in order.  The tutorials are organized with gradual increases in complexity; the initial tutorials consist of plugins with minimum functionality and are meant to illustrate features of the framework, while the later ones are close to feature complete automatic tuners that real users can benefit from.
+
+In \ref getting_started, how to create an empty plugin is described.  After that, in the \ref npb section, instructions on how to prepare the benchmarks used are given.  The document continues with a brief introduction to the \ref datamodel followed by a short description of the \ref plugin_interface.  All subsequent sections are self contained tutorials.  The files of each of the tutorials are found under the _autotune/plugins/tutorial/_ directory, with all the headers under the _include/_ directory and all the C++ files under the _src/_ directory (along with the _Makefile.am_ for building the tutorial plugins).
+
+These tutorials require that the PTF is installed in your workstation or development system (please refer to the installation guide for details).  The tutorials found on this guide are disabled by default on the PTF's build system; to enable them, follow the install guide and additionally pass the '--enable-developer-mode' to the configure script before building.  In most use cases, the following configure call is sufficient:
+
+~~~
+<source-code-location>/configure --prefix=<install-location> --enable-developer-mode
+~~~
+
+Once the framework installed, you are ready to continue with the rest of this document.
+
+\section getting_started Getting Started
+
+As part of the Periscope Tuning Framework's source distribution, a set of skeletons are provided for developers to get started on automatic tuners.  Currently, a skeleton for search algorithms and a skeleton for plugins are provided.  Developers may want to start with a clean plugin that is essentially a clone of the provided skeleton, with modified names for the class and target library names. To achieve this, a convenience script has been distributed with the framework.  If your PTF installation is up to date (and configured with the '--enable-developer-mode' option set), verify that the generator script is available in your path:
+
+~~~
+which psc_generate_bare_plugin_from_skeleton
+~~~
+
+If the script is correctly installed, then you can proceed to generate a new plugin from the PTF skeleton.  For example, to generate a minimal plugin where its desired class name is _Foo_ and the target library is _foo_ (to be passed to the psc_frontend at runtime, with the '--tune=foo' option), execute the following command:
+
+~~~
+psc_generate_bare_plugin_from_skeleton -c Foo -l foo
+~~~
+
+In the case of no errors, the expected output is:
+
+~~~
+Attempting to generate a new plugin with the provided information:
+Class name: Foo
+Library name: foo
+
+PTF source code location:
+<path-to-source>
+PTF version:
+<version>
+
+Generating new plugin at <path-to-source>/autotune/plugins/foo...
+
+Making the initial skeleton copy...
+
+Processing the class header file...
+
+Processing the class implementation file...
+
+Processing the Makefile.am file...
+
+Adding the new plugin to the build system...
+
+Finished generating the new plugin.
+Once installed (after 'make install' on your build directory) it should be available with the 'psc_frontend' command by passing the option: '--tune=foo' .
+~~~
+
+Make sure that <path-to-source> and \<version\> match the location of your PTF source folder and its version. Note that a common error occurs when the desired directory exists:
+
+~~~
+ERROR: <path-to-source>/autotune/plugins/foo exists. Aborting the plugin creation process.
+~~~
+
+This can be due to previous files from earlier runs based on this tutorial, or due to a name conflict with one of the distributed plugins of the PTF.  To check already used names (for the target library of the plugin) list the contents of the _autotune/plugins/_ directory under the PTF's source directory.
+
+The *psc_generate_bare_plugin_from_skeleton* script generates the class header, the C++ implementation file, its Makefile.am and the required directories. Additionally, the script adds the required include line into _autotune/plugins/Makefile.am_ . For the removal of the plugin, the plugin directory with these files needs to be removed and the relevant line in _autotune/plugins/Makefile.am_ deleted by the developer.
+
+Once your skeleton has been generated, the build system should be able to compile and install your plugin in your configured install directory (with the '--prefix=<install-path>' option of the _configure_ script).  After a successful 'make install' executed from the build directory, the _foo_ directory should appear under:
+
+~~~
+<install-path>/plugins/foo
+~~~
+
+The new plugin should now loadable with the '--tune=foo' option of the _psc_frontend_ program (as mentioned before in the output of the *psc_generate_bare_plugin_from_skeleton* script).
+
+The source code for the new generated plugin should be found under the directory:
+~~~
+<path-to-source>/autotune/plugins/foo
+~~~
+
+Opening the generated header file _Foo.h_ under its _include/_ folder should contain the following:
+
+\include docs/doxygen/snippets/Foo.h 
+
+It can be important later, in case of adding new headers and implementation files, to modify the plugin's _Makefile.am_ found under _src/_ :
+
+\include docs/doxygen/snippets/Makefile.am 
+
+To finish, verify that the _Foo.cc_ file under _src/_ contains the required stubs for the _Foo_ class specified in the above header, plus the management calls specified in the _autotune/plugins/include/PluginManagement.h_ header.
+
+\section npb NAS Parallel Benchmarks (NPB) Preparation
+
+The tutorials are distributed with the multi-zone benchmarks of the NAS Parallel benchmarks (NPB) version 3.3.1.  For more information about these benchmarks or to download the original versions, please refer to the <a href="http://www.nas.nasa.gov/publications/npb.html">official web page of the collection</a>.
+
+\subsection npb_build Configuration and Build Process
+
+Before you continue with these tutorials, make sure that the NPB builds correctly in your system.  Start by copying the distributed source code (make sure not to omit the dot at the end of the command):
+
+~~~
+cp -a `psc_source_code_directory`/examples/tutorial/NPB3.3-MZ-MPI .
+cd ./NPB3.3-MZ-MPI
+~~~
+
+Note that _psc_source_code_directory_ is a script that prints the location of the source code (available when the configure option '--enable-developer-mode' is set); therefore you can copy, paste and execute the above commands directly into your terminal.
+
+Before you can build the benchmarks, you need to make a copy of the _make.def.template_ and update it:
+
+~~~
+cp -a ./config/make.def.template ./config/make.def
+~~~
+
+Continue by editing the _config/make.def_ file with your text editor. Search for the line where the Fortran compiler is specified (located usually near the top of the file):
+
+~~~
+F77 = mpif77
+~~~
+
+On most configurations, the _mpif77_ compiler wrapper is indeed correct.  In some cases, the name of this wrapper may need to be updated to match your MPI installation.  
+
+In addition to the compiler, you need to ensure that the _FFLAGS_ variable has the required '-fopenmp' flag for the GNU compilers, or the '-openmp' flag in the case of Intel compilers:
+
+~~~
+FFLAGS = -O3 -fopenmp
+~~~
+
+Make sure that the linker's flags match:
+
+~~~
+FLINKFLAGS = $(FFLAGS)
+~~~
+
+Finally, add the location of the MPI headers to the _F_INC_ variable:
+
+~~~
+F_INC = -I<path-to-mpi-headers>
+~~~
+
+This is not always necessary (can be left empty), but it is recommended since the location may be ambiguous in some systems and the wrong headers may be picked up.  Make sure that these MPI headers are the same that were used during your PTF compilation.
+
+There are also entries for the C compiler and its flags.  Make sure that they match your local C compiler's configuration.
+
+At this point, you should be able to issue the _make_ command and get the following message:
+
+\include docs/doxygen/snippets/nas_empty_make_out
+
+The application used for the tutorials is the BT-MZ benchmark. The acronym BT-MZ stands for block tri-diagonal solver with multiple zones.  It implements an algorithm for solving block tri-diagonal matrices.  The multiple zones part of the name refers to the ability of the benchmark to work with threads along with MPI; the threads provide parallelism in one zone (commonly referred to as intra-node parallelism) while it can also scale to multiple zones (or inter-node parallelism). The thread based parallelism is implemented using <a href="http://openmp.org/">OpenMP</a>, while the multi-zone scalability is achieved using <a href="http://www.mpi-forum.org/">MPI</a>.
+
+Notice that a file called _config/suite.def_ can be used to specify a set of benchmarks to be built. There is a template provided for these suite files (_config/suite.def.template_) with instructions. For these tutorials, only the 'bt-mz' benchmark is required to be built.  To build it, add a single line to the _config/suite.def_ file:
+
+~~~
+echo "bt-mz C 1" > ./config/suite.def
+~~~
+
+This specifies the 'bt-mz' benchmark with size _C_ and _1_ zone. The _C_ indicates the size of the benchmark.  Common sizes are _A_ through  _F_, where _A_ is the smaller one and _F_ the largest.  Refer to the benchmarks' documentation for details, as well as a full list of available sizes (the benchmarks can scale to relatively large compute systems).  The _1_ indicates the number of processes (referred to as zones in this case).  The value of _1_ indicates that parallel execution will be achieved through the use of OpenMP threads in _1_ zone.
+
+Test that your MPI setup can build the BT-MZ benchmark by running:
+
+~~~
+make suite
+~~~
+
+If successful, you should get the following output:
+
+~~~
+make[1]: Entering directory `./NPB3.3-MZ-MPI/BT-MZ'
+rm -f *.o *~ mputil*
+rm -f npbparams.h core
+make[1]: Leaving directory `./NPB3.3-MZ-MPI/BT-MZ'
+make[1]: Entering directory `./NPB3.3-MZ-MPI/BT-MZ'
+make[2]: Entering directory `./NPB3.3-MZ-MPI/sys'
+cc  -o setparams setparams.c -lm
+make[2]: Leaving directory `./NPB3.3-MZ-MPI/sys'
+../sys/setparams bt-mz 1 C
+make[2]: Entering directory `./NPB3.3-MZ-MPI/BT-MZ'
+mpif77 -c  -O3 -fopenmp bt.f
+mpif77 -c  -O3 -fopenmp initialize.f
+mpif77 -c  -O3 -fopenmp exact_solution.f
+mpif77 -c  -O3 -fopenmp exact_rhs.f
+mpif77 -c  -O3 -fopenmp set_constants.f
+mpif77 -c  -O3 -fopenmp adi.f
+mpif77 -c  -O3 -fopenmp rhs.f
+mpif77 -c  -O3 -fopenmp zone_setup.f
+mpif77 -c  -O3 -fopenmp x_solve.f
+mpif77 -c  -O3 -fopenmp y_solve.f
+mpif77 -c  -O3 -fopenmp exch_qbc.f
+mpif77 -c  -O3 -fopenmp solve_subs.f
+mpif77 -c  -O3 -fopenmp z_solve.f
+mpif77 -c  -O3 -fopenmp add.f
+mpif77 -c  -O3 -fopenmp error.f
+mpif77 -c  -O3 -fopenmp verify.f
+mpif77 -c  -O3 -fopenmp mpi_setup.f
+cd ../common; mpif77 -c  -O3 -fopenmp print_results.f
+cd ../common; mpif77 -c  -O3 -fopenmp timers.f
+mpif77 -O3 -fopenmp -o ../bin/bt-mz.C.1 bt.o  initialize.o exact_solution.o exact_rhs.o set_constants.o adi.o  rhs.o zone_setup.o x_solve.o y_solve.o  exch_qbc.o solve_subs.o z_solve.o add.o error.o verify.o mpi_setup.o ../common/print_results.o ../common/timers.o 
+make[2]: Leaving directory `./NPB3.3-MZ-MPI/BT-MZ'
+make[1]: Leaving directory `./NPB3.3-MZ-MPI/BT-MZ'
+~~~
+
+Checking that your setup can build the benchmark correctly helps detect issues early, and is helpful before continuing with the PTF since it also depends on the correctness of your MPI and OpenMP build environment.
+
+
+\subsection npb_user_region User Defined Region
+
+To accelerate the search process, many of the automatic tuners distributed with the PTF will rely on the user marking the performance sensitive region of the code.  The PTF provides _pragmas_ to annotate Fortran and C source code with user defined regions of interest.  In most scientific applications, the location of these regions are obvious, since there are usually well defined compute loops or kernels.  Additionally, a profiler can be used to locate the hot spots.  The use of a profiler is recommended, since unexpected locations can have a large impact in the application's runtime.
+
+In most systems with a working tool-chain, the _gprof_ (profiler) and _gdb_ (debugger) commands are also available. We will not use _gdb_ in this tutorial, but it is recommended that the user be familiar with it and how to collect core dumps in threaded and distributed memory systems.  To profile the BT-MZ application, add the "-pg" flag to the FFLAGS variable in the _config/make.def_ file:
+
+~~~
+FFLAGS= -O3 -fopenmp -pg
+~~~
+
+Issue a _make suite_ again to rebuild the application, and check that the updated flags were passed to the compiler.  Now run the application from the same location:
+
+~~~
+mpiexec -n 1 ./bin/bt-mz.C.1
+~~~
+
+The output should resemble the following:
+
+~~~
+ NAS Parallel Benchmarks (NPB3.3-MZ-MPI) - BT-MZ MPI+OpenMP Benchmark
+
+ Number of zones:  16 x  16
+ Iterations: 200    dt:   0.000100
+ Number of active processes:     1
+
+ Use the default load factors with threads
+ Total number of threads:      4  (  4.0 threads/process)
+
+ Calculated speedup =      4.00
+
+ Time step    1
+ Time step   20
+ Time step   40
+ Time step   60
+ Time step   80
+ Time step  100
+ Time step  120
+ Time step  140
+ Time step  160
+ Time step  180
+ Time step  200
+ Verification being performed for class C
+ accuracy setting for epsilon =  0.1000000000000E-07
+ Comparison of RMS-norms of residual
+           1 0.3457703287806E+07 0.3457703287806E+07 0.1094896221768E-12
+           2 0.3213621375929E+06 0.3213621375929E+06 0.1322233937859E-12
+           3 0.7002579656870E+06 0.7002579656870E+06 0.1462967766560E-13
+           4 0.4517459627471E+06 0.4517459627471E+06 0.2216227371737E-13
+           5 0.2818715870791E+07 0.2818715870791E+07 0.1817236782701E-14
+ Comparison of RMS-norms of solution error
+           1 0.2059106993570E+06 0.2059106993570E+06 0.1543454660588E-12
+           2 0.1680761129461E+05 0.1680761129461E+05 0.2127686739470E-12
+           3 0.4080731640795E+05 0.4080731640795E+05 0.3084595553087E-13
+           4 0.2836541076778E+05 0.2836541076778E+05 0.1033727641923E-12
+           5 0.2136807610771E+06 0.2136807610771E+06 0.2333146948798E-12
+ Verification Successful
+
+
+ BT-MZ Benchmark Completed.
+ Class           =                        C
+ Size            =            480x  320x 28
+ Iterations      =                      200
+ Time in seconds =                   345.65
+ Total processes =                        1
+ Total threads   =                        4
+ Mop/s total     =                  7021.45
+ Mop/s/thread    =                  1755.36
+ Operation type  =           floating point
+ Verification    =               SUCCESSFUL
+ Version         =                    3.3.1
+ Compile date    =              27 Aug 2014
+
+ Compile options:
+    F77          = mpif77
+    FLINK        = $(F77)
+    F_LIB        = (none)
+    F_INC        = (none)
+    FFLAGS       = -O3 -fopenmp
+    FLINKFLAGS   = $(FFLAGS)
+    RAND         = (none)
+
+
+ Please send all errors/feedbacks to:
+
+ NPB Development Team
+ npb@nas.nasa.gov
+~~~
+
+After completion, the profile should be available.  To see the results, use the _gprof_ command, from the same location, and use _less_ to inspect the output:
+
+~~~
+gprof ./bin/bt-mz.C.1 | less
+~~~
+
+At the beginning of the output, the flat profile is presented.  This output will have the time spent in certain routines, in percentage and in total seconds, in descending order.  Here is an example:
+
+~~~
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls   s/call   s/call  name    
+ 25.08    198.70   198.70 1316975523     0.00     0.00  binvcrhs_
+ 16.70    331.04   132.34   101644     0.00     0.01  adi_
+ 14.50    445.91   114.87 1441860332     0.00     0.00  matmul_sub_
+ 13.34    551.61   105.70 37966117     0.00     0.00  binvrhs_
+ 13.02    654.78   103.17    95061     0.00     0.01  x_solve_
+ 12.22    751.57    96.79    50551     0.00     0.01  zone_starts_
+  3.11    776.23    24.67 1388814725     0.00     0.00  matvec_sub_
+  0.85    782.98     6.75 62846654     0.00     0.00  lhsinit_
+  0.53    787.16     4.18   441431     0.00     0.00  y_solve_
+  0.45    790.69     3.53    99280     0.00     0.00  z_solve_
+  0.13    791.72     1.03 14771976     0.00     0.00  exact_solution_
+  0.05    792.09     0.38      201     0.00     1.33  exch_qbc_
+  0.03    792.30     0.21      504     0.00     1.57  MAIN__
+  0.01    792.35     0.05    51785     0.00     0.00  add_
+  0.00    792.36     0.01    51712     0.00     0.00  compute_rhs_
+  0.00    792.37     0.01      512     0.00     0.00  initialize_
+  0.00    792.37     0.00      256     0.00     0.00  error_norm_
+  0.00    792.37     0.00      256     0.00     0.00  exact_rhs_
+  0.00    792.37     0.00      256     0.00     0.00  rhs_norm_
+  0.00    792.37     0.00       22     0.00     0.00  timer_clear_
+  0.00    792.37     0.00        1     0.00     0.00  env_setup_
+  0.00    792.37     0.00        1     0.00     0.00  map_zones_
+  0.00    792.37     0.00        1     0.00     0.00  mpi_setup_
+  0.00    792.37     0.00        1     0.00     0.00  print_results_
+  0.00    792.37     0.00        1     0.00     0.00  set_constants_
+  0.00    792.37     0.00        1     0.00     0.00  timer_read_
+  0.00    792.37     0.00        1     0.00     0.00  timer_start_
+  0.00    792.37     0.00        1     0.00     0.00  timer_stop_
+  0.00    792.37     0.00        1     0.00     2.59  verify_
+  0.00    792.37     0.00        1     0.00     0.00  zone_setup_
+~~~
+
+As can seen, most of the execution time is spent in the _binvrhs_ subroutine.  Inpecting the call graph reveals that this routine is called by the _x_solve_, _y_solve_ and _z_solve_ subroutines, which are called from the _adi_ subroutine themselves.  This last subroutine is defined in the _adi.f_ file under the BT-MZ directory, and is called in the _main_ routine located in the _bt.f_ file.  Edit the _bt.f_ file and add a user region that is inside of the outer loop starting at line 207. The Fortran _pragmas_ provided by the PTF are '!$MON user region' and '!$MON end user region'; the loop should end up looking like this: 
+
+\include docs/doxygen/snippets/user_region.f
+
+Once this is done, remove the profiler option '-pg' from the _FFLAGS_ variable to avoid unnecessary overheads:
+
+~~~
+FFLAGS = -O3 -fopenmp
+~~~
+
+\subsection npb_instrument Instrumentation
+
+Now that the BT-MZ benchmark builds correctly, and we marked the hot-spot of the application, we are ready to instrument and build it with the PTF.  For that purpose, we only need to modify the compiler specification with our instrumentation wrapper, _psc_instrument_, as follows:
+
+~~~
+F77 = psc_instrument -v -d -t user,mpi,omp -s ../bin/$(BENCHMARK).$(CLASS).$(NPROCS).sir  mpif77 
+~~~
+
+Here is a description of the options passed to _psc_instrument_:
+	- '-v': enables verbose output
+	- '-d': developer mode (keeps all intermediate files used during instrumentation)
+	- '-t': type of instrumentation in a comma separated list (user, MPI and OpenMP)
+	- '-s': Standard Intermediate Representation (SIR) file name
+
+Note that by using the NPB defined variables (BENCHMARK, CLASS and NPROCS) we are able to build all benchmarks specified in the _config/suite.def_ file with unique SIR files for each case, although we are only building the BT-MZ one for these tutorials. In this case, we have located the SIR files in the same directory as the binaries.
+
+The above version is for for users of the GNU compilers.  If your system is set up with the Intel compilers, then you need to add the '-i' option to the wrapper.  Here is the command:
+
+~~~
+F77 = psc_instrument -i -v -d -t user,mpi,omp -s ../bin/$(BENCHMARK).$(CLASS).$(NPROCS).sir  mpif77  
+~~~
+
+The addition of the '-i' option is the only change required for working with Intel compilers. If using Intel MPI, then the name of the compiler wrapper is also _mpif77_, so no further changes are necessary.
+
+To test the PTF enabled build, make the _suite_ target again:
+
+~~~
+make suite
+~~~
+
+The following output is expected:
+
+~~~
+make[1]: Entering directory `/<full-path>/NPB3.3-MZ-MPI/BT-MZ'
+rm -f *.o *~ mputil*
+rm -f npbparams.h core
+make[1]: Leaving directory `/<full-path>/NPB3.3-MZ-MPI/BT-MZ'
+make[1]: Entering directory `/<full-path>/NPB3.3-MZ-MPI/BT-MZ'
+make[2]: Entering directory `/<full-path>/NPB3.3-MZ-MPI/sys'
+make[2]: Nothing to be done for `all'.
+make[2]: Leaving directory `/<full-path>/NPB3.3-MZ-MPI/sys'
+../sys/setparams bt-mz 1 C
+make[2]: Entering directory `/<full-path>/NPB3.3-MZ-MPI/BT-MZ'
+psc_instrument -v -d -t mpi,omp,user -s ../bin/bt-mz.C.1.sir  mpif77  -c  -O3 -fopenmp bt.f
+*** Instrumenting and compiling (fortran amd64)...
+gcc -cpp -E -I/usr/include/mpi -ffixed-form bt.f -o ./prep/bt.f
+f90inst.amd64 -d -f -S -M ./instmod -I ./instmod  -I /usr/include/mpi -o ./inst/bt.f90 ./prep/bt.f 1 mpi omp user
+mpif77 -I./compmod -J./compmod -c -O3 -fopenmp ./inst/bt.f90
+
+...
+
+psc_instrument -v -d -t mpi,omp,user -s ../bin/bt-mz.C.1.sir  mpif77  -O3 -fopenmp -o ../bin/bt-mz.C.1 bt.o  initialize.o exact_solution.o exact_rhs.o set_constants.o adi.o  rhs.o zone_setup.o x_solve.o y_solve.o  exch_qbc.o solve_subs.o z_solve.o add.o error.o verify.o mpi_setup.o ../common/print_results.o ../common/timers.o 
+*** Linking...
+mpif77 -fopenmp -O3 -fopenmp -o ../bin/bt-mz.C.1 bt.o initialize.o exact_solution.o exact_rhs.o set_constants.o adi.o rhs.o zone_setup.o x_solve.o y_solve.o exch_qbc.o solve_subs.o z_solve.o add.o error.o verify.o mpi_setup.o ../common/print_results.o ../common/timers.o -L/<full-path-to-periscope-install>/lib -lm -lmrimon -lmpiprofiler -lpscreg -lpscutil -lstdc++  -lpapi -lpfm           
+Merging SIR files to ../bin/bt-mz.C.1.sir:
+	./prep/add.sir
+	./prep/adi.sir
+	./prep/bt.sir
+	./prep/error.sir
+	./prep/exact_rhs.sir
+	./prep/exact_solution.sir
+	./prep/exch_qbc.sir
+	./prep/initialize.sir
+	./prep/mpi_setup.sir
+	./prep/rhs.sir
+	./prep/set_constants.sir
+	./prep/solve_subs.sir
+	./prep/verify.sir
+	./prep/x_solve.sir
+	./prep/y_solve.sir
+	./prep/z_solve.sir
+	./prep/zone_setup.sir
+Done!
+make[2]: Leaving directory `/<full-path>/NPB3.3-MZ-MPI/BT-MZ'
+make[1]: Leaving directory `/<full-path>/NPB3.3-MZ-MPI/BT-MZ'
+~~~
+
+Some of the output was truncated for brevity.
+
+As a last step, verify that the following files have been created under _bin/_:
+
+~~~
+bt-mz.C.1  
+bt-mz.C.1.sir
+~~~
+
+You are now finished setting up BT-MZ of the NAS Parallel Benchmarks (NPB) with the Periscope Tuning Framework (PTF) and are ready to begin working with the tutorials.
+
+\section datamodel Data Model
+
+In this section, a brief introduction to the core classes of the framework, that is necessary to get started with the tutorials, is presented.  Not all classes of the data model are described here, and other classes will be introduced when used in specific tutorials.  The classes in the data model of the PTF are mostly data objects used by the plugins to tell the runtime system what to do.  
+
+\subsection scenario Scenario Class
+
+A PTF plugin needs to tell the framework what to set, where to set it, and what should be measured after that.  This transfer of information is achieved through the Scenario data structure. It can be said that the main task of the PTF plugins is to create and track Scenario objects.
+
+The Scenario class contains the following members:
+- id: A unique identifier.
+- description: A string with a short description.
+- tuned_region: The code Region where it applies.
+- ts: A TuningSpecification list.
+- pr: A PropertyRequest list.
+- results: The measurements from its evaluation.
+
+The _id_ is a unique number given to the Scenario once created, and is used to track it.  The _description_ is an optional string that describes what the Scenario represents.  The _tuned_region_ is the location where the Scenario can be applied.  The rest of the members require a more detailed description.
+
+The TuningSpecification objects contain information about concrete values and location of parameters used for tuning.  The TuningSpecification class contains the following members:
+- variant: Set of concrete values to be written to the relevant TuningParameter objects.
+- context: The context (location) where the variant will be applied.
+- ranks: Ranks where the variant should be applied.
+
+The _variant_ is an instance of the Variant class.  This class is used to represent concrete values for tuning parameters (represented by the TuningParameter class); a variant is in essence a point in a search space. The _context_ is an instance of the VariantContext class.  A VariantContext instance contains location information; locations can be files or code regions.  Finally, the _ranks_ member is an instance of the Ranks class. A instance of this class can represent all ranks, a set of ranks or a set of rank ranges.
+
+The next member of the Scenario class in the list of PropertyRequest instances.  As its name suggest, it contains a list of PTF properties to be collected by the experiments.  This class contains the following members:
+- property_ids: List of ID numbers of the properties to collect.
+- ranks: Ranks where the properties should be collected. Object of the same type as in the TuningSpecification.
+- regions: List of code locations where these properties are to be collected.
+
+The last member of the class Scenario, is the list of _results_.  This list is filled by the runtime system with the measurements collected at runtime.
+
+\subsection scenario_pool ScenarioPool Class
+
+The ScenarioPool class is a collection of Scenario instances.  These pools are used to coordinate work between the runtime system, the plugins and the search algorithms; these pools are core components of the tuning framework.
+
+There are 4 such pools to be manipulated by the plugin (in the creation, preparation and experiment definition process) and the runtime system (in the evaluation process):
+- Created Scenario Pool (csp): Contains all created scenarios in a search step.
+- Prepared Scenario Pool (psp): Scenarios that are prepared are moved here from the _csp_. Preparation can be application re-compilation, environment setup, ect.
+- Experiment Scenario Pool (esp): Scenarios that were mapped to the execution environment (cores, threads, regions, ect.) and are ready for the experiments are moved from the _psp_ to this pool.
+- Finished Scenario Pool (fsp): When the relevant experiment is finished and results collected, a Scenario is moved from the _esp_ to this pool.
+
+This class allows for the retrieval of the TuningSpecification list of a specific Scenario, as well as a map of the stored scenarios accessible through their ID.
+
+\subsection properties Performance Properties
+
+In the Periscope Tuning Framework (PTF), the result of experiments or analyses requested by the plugins are performance properties.  A performance property characterizes a specific performance behavior, such as network performance, load imbalances, cache miss rates, ect. Performance properties are objects that inherit from the MetaProperty class and can be specific to the type of parallel application, such as OpenMP or MPI specific properties. Properties can also be hardware specific, for example, they can belong to a specific Intel CPU or IBM Power CPU family.  They can also be common across architectures, such as cache miss rates at different levels.
+
+A property instance will contain the following members:
+- Condition: Indicates whether the property was found in the program.
+- Confidence: Degree of certainty on the condition as a percentage.
+- Severity: Importance of the property, as a percentage.
+
+The severity is the most relevant one when tuning automatically, since a higher or lower severity is a direct indication of the quality of the results gathered through an experiment.  The concept of the performance property will be further clarified under specific use cases in the succeeding tutorials.
+
+\subsection results_pools Results Pools
+
+Once the experiments required by specific scenarios and analyses requested by a plugin are completed, the results are collected and the scenarios are moved to the Finished Scenario Pool (fsp) from the Prepared Scenario Pool (psp). The collection of properties, that result from the Scenario instances' PropertyRequest lists, are placed into 2 result pools:
+- Analysis Results Pool (arp): Contains properties that were collected as part of PTF analyses.
+- Scenario Results Pool (srp): Properties that were collected as requested by Scenario instances are placed here.
+
+These pools are each separate types: AnalysisResultsPool and ScenarioResultsPool.  More about the operations that these pools provide will be presented in the tutorials. In general, they provide convenience methods for accessing the results (performance properties) based on common criteria, much as the Scenario ID or the search step where the relevant experiment or analysis took place.
+
+In the next subsections, each operation of the abstract interface class IPlugin and the C functions used to load the implementations are briefly described.
+
+\section plugin_interface Tuning Plugin Interface (TPI)
+
+A PTF plugin is a shared library that contains a specific implementation of the Tuning Plugin Interface (TPI), as well as management calls that provide information and allow it to be instantiated.  The set of operations that are part of the TPI are defined in the _autotune/plugins/include/IPlugin.h_ header, while the management operations that provide information and allow the instantiation of the plugin are defined in the _autotune/plugins/include/PluginManagement.h_ .  The header _autotune/plugins/include/AutotunePlugin.h_ is provided for convenience and loads both these headers as well as the Autotune services header.  The services provided by the PTF will be covered in the tutorials.
+
+The TPI allows the plugin to define what will be done in the operations of the PTF's generic tuning flow.  Some of the operations are optional, while many are mandatory.  In the case of optional operations, empty implementations with default return values are sufficient.  Here is a flow chart of the generic tuning flow of the PTF:
+
+\image html ptf_flow.png
+
+The operations that are in the center column are performed by PTF plugins, while the operations on the right are performed by the runtime system.  
+
+\subsection iplugin IPlugin Members
+
+All methods of the IPlugin need to be implemented by plugins.  Here is its class definition:
+
+\snippet autotune/plugins/include/IPlugin.h iplugin_h 
+
+The first thing to notice is the protected members _context_ and _pool_set_; these are passed to the plugin at runtime through the _initialize_ call, and their address should be stored in these pointers.  These will be used for coordination with the runtime system.
+
+The class has the following pure virtual members:
+- <b>initialize</b>: All operations that are done once should be performed here. These include: memory allocations, required objects instantiation, storing the _context_ and _pool_set_ addresses passed to the plugin by the runtime system, ect.  
+- <b>startTuningStep</b>: Perform all operations required for the beginning of the current tuning step. The concept of a tuning step is better described within the context of a specific plugin and will be covered in the tutorials. There may be any number of tuning steps in a plugin, but typically their number is low.
+- <b>analysisRequired</b>: Tells the runtime system whether to perform an analysis prior to the scenario creation operation. Analyses can be useful for detecting areas of interest in the code, obtain performance properties, ect. Information collected through analyses can be used to restrict search spaces.
+- <b>createScenarios</b>: Create scenarios based on the tuning parameters and search spaces prepared in previous steps.
+- <b>prepareScenarios</b>: Do any preparation required by the created scenarios (such as recompilation of the application, environment variable setups, ect). 
+- <b>defineExperiment</b>: Map the scenarios to the execution environment (processes, threads, code regions, ect.).
+- <b>restartRequired</b>: Tells the runtime system if a restart is required before the experiment is performed.
+- <b>searchFinished</b>: Tells the runtime system if the current search process is finished.
+- <b>finishTuningStep</b>: Perform operations related to the conclusion of the current tuning step (such as processing results).
+- <b>tuningFinished</b>: Tells the runtime system if the plugin is done with the automatic tuning process.
+- <b>getAdvice</b>: Provide advice for the user.  This can include output to the screen and will in all cases generate XML output.
+- <b>finalize</b>: Finish the plugin normally. Clean up memory and close file descriptors, ect.
+- <b>terminate</b>: Terminate the plugin safely in case of error.  This will be called in case of errors and does not appear in the flow chart.
+
+A better illustration of each of these operations will be presented in the succeeding tutorials.  
+
+\subsection management Plugin Management Operations
+
+In addition to the Tuning Plugin Interface (TPI), management calls need to be included with every plugin implementation.  These are C functions, since they have to be in the global scope without any C++ mangled names.  Here is the contents of the header _autotune/plugins/include/PluginManagement.h_:
+
+\snippet autotune/plugins/include/PluginManagement.h pluginmanagement_h
+
+Here is a short description about each C call:
+- <b>getPluginInstance</b>: Returns an instance of the plugin.
+- <b>getVersionMajor</b>: Returns the digit on the left of the dot of the plugin's version, as an integer type.
+- <b>getVersionMinor</b>: Returns the digit on the right of the dot of the plugin's version, as an integer type.
+- <b>getName</b>: Returns a string with the name of the plugin.
+- <b>getShortSummary</b>: Returns a string with a short description of the plugin.  This is recommended to be kept as a single line.
+
+These operations are simple enough, so that no extra explanation is necessary; therefore, they will not be covered again in the tutorials.
+
+\section tutorial_scalability_basic OpenMP Scalability Basic Tutorial
+
+Annotating code with <a href="http://openmp.org/">OpenMP</a> pragmas allows the conversion of serial programs to parallel ones through multi-threading.  After compiling a program with OpenMP enabled, the number of threads can be modified; the number of threads is a runtime option, not a compiled one.  In this tutorial, a plugin that performs basic scalability tests with OpenMP is presented.
+
+At this point, you should have a working BT-MZ application prepared for the PTF (if not, follow the instructions presented in the section \ref npb). 
+
+If you configured you PTF installation with the '--enable-developer-mode' then the plugin is already installed and ready for use.  Go to your NPB source directory and move to the _bin/_ subdirectory.  You can now run the plugin with the benchmark by issuing the following command:
+
+~~~
+psc_frontend --apprun=./bt-mz.C.1 --sir=./bt-mz.C.1.sir --mpinumprocs=1 --tune=TutScalabilityBasic --ompnumthreads=4 
+~~~
+
+Output similar to the following is expected:
+
+  ~~~
+Periscope Performance Analysis Tool (ver. 1.1.0)
+  [psc_frontend][INFO:fe] Preparing to start the performance analysis...
+
+  Loaded Autotune components: 
+
+  Plugin:           TutScalabilityBasic
+  Version:          1.0
+  Description:      Explores scalability of OpenMP codes with exhaustive search.
+
+  Search Algorithm: Exhaustive Search
+  Version:          1.0
+  Description:      Explores the full space spanned by all tuning parameters.
+
+  [psc_frontend][INFO:fe] Starting agents network...
+  [psc_frontend][INFO:fe] Starting application ./bt-mz.C.1 using 1 MPI procs and 4 OpenMP threads...
+
+
+  NAS Parallel Benchmarks (NPB3.3-MZ-MPI) - BT-MZ MPI+OpenMP Benchmark
+
+  Number of zones:  16 x  16
+  Iterations: 200    dt:   0.000100
+  Number of active processes:     1
+
+  Use the default load factors with threads
+Total number of threads:      4  (  4.0 threads/process)
+
+  Calculated speedup =      4.00
+
+  Time step    1
+  [psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+  [psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+  [psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+  Optimum Scenario: 3
+
+
+  All Results:
+  Scenario	|  Threads	|  Time 	|  Speedup	
+  0		|  1		|  3.42629	|  1
+  1		|  2		|  1.99972	|  1.71338
+  2		|  3		|  1.40804	|  2.43338
+  3		|  4		|  1.15698	|  2.96141
+
+  ------------------------
+
+  [psc_frontend][INFO:fe] Plugin advice stored in: advice_17612.xml
+
+  ----------------
+End Periscope run! Search took 10.6839 seconds ( 0.0350299 seconds for startup  )
+  ----------------
+  [psc_frontend][INFO:fe] Experiment completed!
+  [psc_frontend][INFO:fe] Exporting results to properties_tune_17612.psc
+  ~~~
+
+  Notice that, compared to the default behavior, the application only reaches the first iteration and terminates early.  This is an optimization that relies on the definition of the user region. It is in general a welcome optimization, since scientific applications have run times that can vary from hours to days; however, it depends on the application having stable run times across iterations.
+
+  If the user region was not defined with the PTF's Fortran _pragmas_ (refer to \ref npb) then the time required to perform this search will be much larger.  To verify this, edit the _BT-MZ/bt.f_ file of the benchmark, and remove the user region enclosed by the loop starting at line 207.  Rebuild the benchmark with _make suite_, move back to the _bin/_ directory and relaunch the benchmark with the same command as above.  After several minutes, you should end up with output similar to this:
+
+  ~~~
+Periscope Performance Analysis Tool (ver. 1.1.0)
+  [psc_frontend][INFO:fe] Preparing to start the performance analysis...
+
+  Loaded Autotune components: 
+
+  Plugin:           TutScalabilityBasic
+  Version:          1.0
+  Description:      Explores scalability of OpenMP codes with exhaustive search.
+
+  Search Algorithm: Exhaustive Search
+  Version:          1.0
+  Description:      Explores the full space spanned by all tuning parameters.
+
+  [psc_frontend][INFO:fe] Starting agents network...
+  [psc_frontend][INFO:fe] Starting application ./bt-mz.C.1 using 1 MPI procs and 4 OpenMP threads...
+
+
+  NAS Parallel Benchmarks (NPB3.3-MZ-MPI) - BT-MZ MPI+OpenMP Benchmark
+
+  Number of zones:  16 x  16
+  Iterations: 200    dt:   0.000100
+  Number of active processes:     1
+
+  Warning: Requested    4 threads per process, but the active value is    1
+  Use the default load factors with threads
+Total number of threads:      1  (  1.0 threads/process)
+
+  Calculated speedup =      1.00
+
+  Time step    1
+  Time step   20
+  Time step   40
+  Time step   60
+  Time step   80
+  Time step  100
+  Time step  120
+  Time step  140
+  Time step  160
+  Time step  180
+  Time step  200
+  Verification being performed for class C
+  accuracy setting for epsilon =  0.1000000000000E-07
+  Comparison of RMS-norms of residual
+  1 0.3457703287806E+07 0.3457703287806E+07 0.1093549485947E-12
+  2 0.3213621375929E+06 0.3213621375929E+06 0.1318611379125E-12
+  3 0.7002579656870E+06 0.7002579656870E+06 0.1529466301404E-13
+  4 0.4517459627471E+06 0.4517459627471E+06 0.2229112414596E-13
+  5 0.2818715870791E+07 0.2818715870791E+07 0.1817236782701E-14
+  Comparison of RMS-norms of solution error
+  1 0.2059106993570E+06 0.2059106993570E+06 0.1543454660588E-12
+  2 0.1680761129461E+05 0.1680761129461E+05 0.2134180188319E-12
+  3 0.4080731640795E+05 0.4080731640795E+05 0.3084595553087E-13
+  4 0.2836541076778E+05 0.2836541076778E+05 0.1035010182422E-12
+  5 0.2136807610771E+06 0.2136807610771E+06 0.2331784924893E-12
+  Verification Successful
+
+
+  BT-MZ Benchmark Completed.
+  Class           =                        C
+  Size            =            480x  320x 28
+  Iterations      =                      200
+  Time in seconds =                   677.35
+  Total processes =                        1
+  Total threads   =                        1
+  Mop/s total     =                  3583.07
+  Mop/s/thread    =                  3583.07
+  Operation type  =           floating point
+  Verification    =               SUCCESSFUL
+  Version         =                    3.3.1
+  Compile date    =              29 Aug 2014
+
+  Compile options:
+  F77          = psc_instrument -v -d -t mpi,omp,user -s ../...
+  FLINK        = $(F77)
+F_LIB        = (none)
+  F_INC        = -I$(HOME)/install/mpi/include
+  FFLAGS       = -O3 -fopenmp
+  FLINKFLAGS   = $(FFLAGS)
+RAND         = (none)
+
+
+  Please send all errors/feedbacks to:
+
+  NPB Development Team
+  npb@nas.nasa.gov
+
+
+  [psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+
+
+  NAS Parallel Benchmarks (NPB3.3-MZ-MPI) - BT-MZ MPI+OpenMP Benchmark
+
+  Number of zones:  16 x  16
+  Iterations: 200    dt:   0.000100
+  Number of active processes:     1
+
+  Warning: Requested    4 threads per process, but the active value is    2
+  Use the default load factors with threads
+Total number of threads:      2  (  2.0 threads/process)
+
+  Calculated speedup =      2.00
+
+  Time step    1
+  Time step   20
+  Time step   40
+  Time step   60
+  Time step   80
+  Time step  100
+  Time step  120
+  Time step  140
+  Time step  160
+  Time step  180
+  Time step  200
+  Verification being performed for class C
+  accuracy setting for epsilon =  0.1000000000000E-07
+  Comparison of RMS-norms of residual
+  1 0.3457703287806E+07 0.3457703287806E+07 0.1093549485947E-12
+  2 0.3213621375929E+06 0.3213621375929E+06 0.1322233937859E-12
+  3 0.7002579656870E+06 0.7002579656870E+06 0.1479592400271E-13
+  4 0.4517459627471E+06 0.4517459627471E+06 0.2280652586031E-13
+  5 0.2818715870791E+07 0.2818715870791E+07 0.1321626751055E-14
+  Comparison of RMS-norms of solution error
+  1 0.2059106993570E+06 0.2059106993570E+06 0.1544868080607E-12
+  2 0.1680761129461E+05 0.1680761129461E+05 0.2132015705369E-12
+  3 0.4080731640795E+05 0.4080731640795E+05 0.3048935488889E-13
+  4 0.2836541076778E+05 0.2836541076778E+05 0.1035010182422E-12
+  5 0.2136807610771E+06 0.2136807610771E+06 0.2329060877084E-12
+  Verification Successful
+
+
+  BT-MZ Benchmark Completed.
+  Class           =                        C
+  Size            =            480x  320x 28
+  Iterations      =                      200
+  Time in seconds =                   585.94
+  Total processes =                        1
+  Total threads   =                        2
+  Mop/s total     =                  4142.05
+  Mop/s/thread    =                  2071.02
+  Operation type  =           floating point
+  Verification    =               SUCCESSFUL
+  Version         =                    3.3.1
+  Compile date    =              29 Aug 2014
+
+  Compile options:
+  F77          = psc_instrument -v -d -t mpi,omp,user -s ../...
+  FLINK        = $(F77)
+F_LIB        = (none)
+  F_INC        = -I$(HOME)/install/mpi/include
+  FFLAGS       = -O3 -fopenmp
+  FLINKFLAGS   = $(FFLAGS)
+RAND         = (none)
+
+
+  Please send all errors/feedbacks to:
+
+  NPB Development Team
+  npb@nas.nasa.gov
+
+
+  [psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+
+
+  NAS Parallel Benchmarks (NPB3.3-MZ-MPI) - BT-MZ MPI+OpenMP Benchmark
+
+  Number of zones:  16 x  16
+  Iterations: 200    dt:   0.000100
+  Number of active processes:     1
+
+  Warning: Requested    4 threads per process, but the active value is    3
+  Use the default load factors with threads
+Total number of threads:      3  (  3.0 threads/process)
+
+  Calculated speedup =      3.00
+
+  Time step    1
+  Time step   20
+  Time step   40
+  Time step   60
+  Time step   80
+  Time step  100
+  Time step  120
+  Time step  140
+  Time step  160
+  Time step  180
+  Time step  200
+  Verification being performed for class C
+  accuracy setting for epsilon =  0.1000000000000E-07
+  Comparison of RMS-norms of residual
+  1 0.3457703287806E+07 0.3457703287806E+07 0.1096242957588E-12
+  2 0.3213621375929E+06 0.3213621375929E+06 0.1318611379125E-12
+  3 0.7002579656870E+06 0.7002579656870E+06 0.1479592400271E-13
+  4 0.4517459627471E+06 0.4517459627471E+06 0.2280652586031E-13
+  5 0.2818715870791E+07 0.2818715870791E+07 0.1486830094937E-14
+  Comparison of RMS-norms of solution error
+  1 0.2059106993570E+06 0.2059106993570E+06 0.1543454660588E-12
+  2 0.1680761129461E+05 0.1680761129461E+05 0.2127686739470E-12
+  3 0.4080731640795E+05 0.4080731640795E+05 0.3031105456791E-13
+  4 0.2836541076778E+05 0.2836541076778E+05 0.1036292722920E-12
+  5 0.2136807610771E+06 0.2136807610771E+06 0.2334508972703E-12
+  Verification Successful
+
+
+  BT-MZ Benchmark Completed.
+  Class           =                        C
+  Size            =            480x  320x 28
+  Iterations      =                      200
+  Time in seconds =                   442.44
+  Total processes =                        1
+  Total threads   =                        3
+  Mop/s total     =                  5485.49
+  Mop/s/thread    =                  1828.50
+  Operation type  =           floating point
+  Verification    =               SUCCESSFUL
+  Version         =                    3.3.1
+  Compile date    =              29 Aug 2014
+
+  Compile options:
+  F77          = psc_instrument -v -d -t mpi,omp,user -s ../...
+  FLINK        = $(F77)
+F_LIB        = (none)
+  F_INC        = -I$(HOME)/install/mpi/include
+  FFLAGS       = -O3 -fopenmp
+  FLINKFLAGS   = $(FFLAGS)
+RAND         = (none)
+
+
+  Please send all errors/feedbacks to:
+
+  NPB Development Team
+  npb@nas.nasa.gov
+
+
+  [psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+
+
+  NAS Parallel Benchmarks (NPB3.3-MZ-MPI) - BT-MZ MPI+OpenMP Benchmark
+
+  Number of zones:  16 x  16
+  Iterations: 200    dt:   0.000100
+  Number of active processes:     1
+
+  Use the default load factors with threads
+Total number of threads:      4  (  4.0 threads/process)
+
+  Calculated speedup =      4.00
+
+  Time step    1
+  Time step   20
+  Time step   40
+  Time step   60
+  Time step   80
+  Time step  100
+  Time step  120
+  Time step  140
+  Time step  160
+  Time step  180
+  Time step  200
+  Verification being performed for class C
+  accuracy setting for epsilon =  0.1000000000000E-07
+  Comparison of RMS-norms of residual
+  1 0.3457703287806E+07 0.3457703287806E+07 0.1094896221768E-12
+  2 0.3213621375929E+06 0.3213621375929E+06 0.1322233937859E-12
+  3 0.7002579656870E+06 0.7002579656870E+06 0.1462967766560E-13
+  4 0.4517459627471E+06 0.4517459627471E+06 0.2216227371737E-13
+  5 0.2818715870791E+07 0.2818715870791E+07 0.1817236782701E-14
+  Comparison of RMS-norms of solution error
+  1 0.2059106993570E+06 0.2059106993570E+06 0.1543454660588E-12
+  2 0.1680761129461E+05 0.1680761129461E+05 0.2127686739470E-12
+  3 0.4080731640795E+05 0.4080731640795E+05 0.3084595553087E-13
+  4 0.2836541076778E+05 0.2836541076778E+05 0.1033727641923E-12
+  5 0.2136807610771E+06 0.2136807610771E+06 0.2333146948798E-12
+  Verification Successful
+
+
+  BT-MZ Benchmark Completed.
+  Class           =                        C
+  Size            =            480x  320x 28
+  Iterations      =                      200
+  Time in seconds =                   342.42
+  Total processes =                        1
+  Total threads   =                        4
+  Mop/s total     =                  7087.81
+  Mop/s/thread    =                  1771.95
+  Operation type  =           floating point
+  Verification    =               SUCCESSFUL
+  Version         =                    3.3.1
+  Compile date    =              29 Aug 2014
+
+  Compile options:
+  F77          = psc_instrument -v -d -t mpi,omp,user -s ../...
+  FLINK        = $(F77)
+F_LIB        = (none)
+  F_INC        = -I$(HOME)/install/mpi/include
+  FFLAGS       = -O3 -fopenmp
+  FLINKFLAGS   = $(FFLAGS)
+RAND         = (none)
+
+
+  Please send all errors/feedbacks to:
+
+  NPB Development Team
+  npb@nas.nasa.gov
+
+
+  Optimum Scenario: 3
+
+
+  All Results:
+  Scenario	|  Threads	|  Time 	|  Speedup	
+  0		|  1		|  683.601	|  1
+  1		|  2		|  589.404	|  1.15982
+  2		|  3		|  446.155	|  1.53221
+  3		|  4		|  344.506	|  1.98429
+
+  ------------------------
+
+  [psc_frontend][INFO:fe] Plugin advice stored in: advice_15802.xml
+
+  ----------------
+End Periscope run! Search took 2063.96 seconds ( 0.033107 seconds for startup  )
+  ----------------
+  [psc_frontend][INFO:fe] Experiment completed!
+  [psc_frontend][INFO:fe] Exporting results to properties_tune_15802.psc
+  ~~~
+
+  As can be seen, the runtime now is several times longer and the same number of threads is found.  The extra time is due to the tool being forced to run the _main_ procedure every time (essentially the whole program), since the area of computation is not indicated in any way.
+
+  The remainder of the section will be dedicated to describing this plugin's implementation.  In each subsection, the source code of one interface method is presented and then explained. The operations are organized in the order that they are called from the runtime system.
+
+\subsection tutorial_scalability_basic_initialization Initialization
+
+\snippet autotune/plugins/tutorial/src/TutScalabilityBasic.cc initialize
+
+As can be seed in the code snippet, the very first operation is a debugger output call.  To allow the PTF to selectively display debug messages that are produced by plugins, the developer should set the _PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins)_ debug level as the first parameter of the _psc_dbgmsg_ call.  This debug level can then be selected at runtime by passing '--selective-debug=AutotunePlugins' to the _psc_frontend_ command.
+
+The next 2 operations set the _context_ and _pool_set_ references, passed by the runtime system, to the local references stored in the plugin.  This must be done by all plugins.  The _context_ object is an instance of the DriverContext class, that is instantiated by the runtime system and is used to offer services to the plugins.  We will see how to load a search algorithm through the _context_ shortly.  The _pool_set_ contains the scenario pools and results pools described in the \ref scenario_pool and \ref results_pools sections.
+
+The next step is to define a tuning parameter (instance of the TuningParameter class).  These parameters represent aspects of the application that can affect its performance and can be modified.  In the case of this plugin, the parameter represents the number of OpenMP threads that will be created at runtime.  After creating the object, we continue by setting its ID number, name, type, range and action type.  Notice that we acquired the number of threads asked to be used by the user, and set it as the maximum in the range.  This is indeed a sensible way of setting the maximum, but there are other good alternatives that developers can use, such as the maximum number of cores or hardware threads in the system.  Finally, the new parameter is pushed to the tuningParameters vector.  This _std::vector_ was defined in the plugin's header (under autotune/plugins/tutorials/include/TutScalabilityBasic.h).
+
+There is one additional debug output added, that shows the actual number of threads passed by the user with the '--opmnumthreads' flag to the _psc_frontend_ command.
+
+The final operation done at _initialize_ is the creation of a search algorithm instance.  There are multiple search algorithms available with the PTF distribution.  Developers are also free to develop their own.  Once a search algorithm has been made available with the framework, it can be loaded through one of the services provided with the _context_.  This is done in 2 steps: first, the implementation is loaded with the _loadSearchAlgorithm_ call, and second, an instance is acquired with the _getSearchAlgorithmInstance_ call.  Once the search algorithm instance is loaded, we print its information and initialize it with the same _context_ and _pool_set_ that was provided by the runtime system.
+
+\subsection tutorial_scalability_basic_start_tuning_step Start Tuning Step
+
+\snippet autotune/plugins/tutorial/src/TutScalabilityBasic.cc startTuningStep
+
+This tutorial plugin contains a single tuning step.  Before this step is done, the variant space and the search space are set up, and then the search space is added to the search algorithm.
+
+Again, the first operation is a debug message as described earlier.  This will be done at the beginning of all the other TPI calls as well, so it will not be mentioned again in this tutorial.
+
+We continue by creating an instance of the VariantSpace and the SearchSpace classes.  After that, we iterate through the _tuningParameters_ vector and add each parameter to the variant space.  Note that we only have added one parameter to this vector, but iterating is better practice that accessing the first element, for future extensions.  Once we have our _variantSpace_, we set it in the _searchSpace_ instance.  The SearchSpace class consists of a VariantSpace and additional information, such as restrictions and the location where the variants should be applied.  In this case, we set the location to apply it as the phase region.  The phase region is either the _main_ procedure of a program, or _user_ regions defined with the PTF's pragmas.  Once the search space is set up, we pass it to the search algorithm with the _addSearchSpace_ call.  
+
+\subsection tutorial_scalability_analysis_required Analysis Required
+
+\snippet autotune/plugins/tutorial/src/TutScalabilityBasic.cc analysisRequired
+
+In this particular plugin, no analysis is performed on the application before the search.  Therefore, retuning false is all that has to be done here.
+
+\subsection tutorial_scalability_basic_create_scenarios Create Scenarios
+
+\snippet autotune/plugins/tutorial/src/TutScalabilityBasic.cc createScenarios
+
+Because we have loaded a search algorithm (with an instance reference in the searchAlgorithm pointer), the createScenarios operation should be offloaded to it.  The search algorithm will generate the scenarios and put them in the Created Scenario Pool (csp).  
+
+\subsection tutorial_scalability_basic_perpare_scenarios Prepare Scenarios
+
+\snippet autotune/plugins/tutorial/src/TutScalabilityBasic.cc prepareScenarios
+
+The scenarios created require no preparation; they should simply be moved to the Prepared Scenario Pool (psp).
+
+If the thread number were to be changed through the OpenMP environment variable _OMP_NUM_THREADS_, then it would have to be updated here.  We have support for thread changes in the runtime system, so _no environment preparation needs to take place here_.
+
+\subsection tutorial_scalability_basic_define_experiment Define Experiment
+
+\snippet autotune/plugins/tutorial/src/TutScalabilityBasic.cc defineExperiment
+
+When an experiment is defined, the created Scenarios are mapped to the runtime environment (processes, threads and code locations).  In this tutorial, we take one scenario at a time, map it to the _phase_ region (in this case the annotated _user_ region with the OpenMP pragmas; refer to \ref npb) at rank 0, and request its execution time property with the _setSingleTunedRegionWithPropertyRank_ call of the Scenario class.
+
+Once the scenario is set up, we push it to the Experiment Scenario Pool (esp), and the runtime system will perform the required experiments to acquire its properties (only the execution time in this case).
+
+\subsection tutorial_scalability_basic_restart_required Restart Required
+
+\snippet autotune/plugins/tutorial/src/TutScalabilityBasic.cc restartRequired
+
+For the evaluation of the Scenario that was pushed to the _esp_, no restart is required because the number of OpenMP threads can be changed at runtime; therefore, returning false here is sufficient.
+
+\subsection tutorial_scalability_basic_search_finished Search Finished
+
+\snippet autotune/plugins/tutorial/src/TutScalabilityBasic.cc searchFinished
+
+Since we are relying on a search algorithm for Scenario creation, we also delegate this decision to it. The search algorithm will take a look at the results pool and make a decision. In the case of the ExhaustiveSearch algorithm loaded in this tutorial, this call always returns true since all possible Scenarios are created at the first call of its _createScenarios_ method.
+
+\subsection tutorial_scalability_basic_finish_tuning_step Finish Tuning Step
+
+\snippet autotune/plugins/tutorial/src/TutScalabilityBasic.cc finishTuningStep
+
+There are no operations to be done at the end of this plugin's single tuning step. An empty implementation here is sufficient.
+
+\subsection tutorial_scalability_basic_tuning_finished Tuning Finished
+
+\snippet autotune/plugins/tutorial/src/TutScalabilityBasic.cc tuningFinished
+
+In this plugin, we perform the search in a single tuning step.  Returning _true_ here is sufficient.
+
+\subsection tutorial_scalability_basic_get_advice Get Advice
+
+\snippet autotune/plugins/tutorial/src/TutScalabilityBasic.cc getAdvice
+
+In this operation is where information is presented to the user and XML output is generated for further processing.  
+
+After a few declarations, we collect and print the ID of the scenario with the best time from the search algorithm.  This is done with the _getOptimum_ call.  After that, we present all results to the user in tabular form.  We iterate through all scenarios in the Finished Scenario Pool (fsp) and then for each one print the ID, number of threads, execution time and speed up over the single threaded case.
+
+Finally, we build an Advice instance that is passed to the runtime system.  This object is then used by the runtime system to generate the XML output of the advice, for further processing.
+
+\subsection tutorial_scalability_basic_finalize Finalize
+
+\snippet autotune/plugins/tutorial/src/TutScalabilityBasic.cc finalize
+
+All created objects need to be freed here.  Loaded components through the _context_ will be unloaded by the runtime system, but obtained instances must be deleted here.  The _pool_set_ is also handled by the runtime system.
+
+
+
+
+\section tutorial_vector_range Vector Range Restriction Tutorial
+
+In this tutorial, we start by extending the reader's understanding on the concept of a TuningParameter, and then continue with a description on how to restrict the possible values that a TuningParameter instance can take.  Finally, our tutorial plugin (started with the \ref tutorial_scalability_basic) will be extended, in the _initialization_ step, to make use of the Restriction feature of the framework.
+
+\subsection tutorial_vector_range_tuning_parameter Tuning Parameter
+
+The TuningParameter class represents single scalar values that affect performance.  In the context of the tutorials, the scalar represents the number of OpemMP threads in a parallel region, and we have already seen the effect of changing it in the BT-MZ benchmark.
+
+The TuningParameter class has the following private members:
+
+- _ID_: A unique identifier.
+- _runtimeActionType_: The runtime tuning action type.  A tuning action is the operation that is required to set the concrete value given to the parametern in a variant (a value between the _from_ and _to_ value that fits the _step_ size and/or the Restriction).
+- _name_: A name given to it to later simplify information for the user.
+- _from_: The lowest possible value of the parameter.
+- _to_: The highest possible value of the parameter.
+- _step_: The value that is used to increment from the _from_ value until the _to_ value.
+- _restrictions_: This further restricts the possible values that the parameter can take.  This is decribed in the initialization subsection (\ref tutorial_vector_range_initialization).
+
+TuningParameter instances are aggregated into a vector class called Variant, together with concrete values.  A Variant therefore represents a point in the search space; a unique combination of parameters that result in better or worse performance.  In that sence, a TuningParameter instance represents a dimension in a search space.  In some cases, the parameters can be independent in their effects to performance (such ortogonality can be used to accelerate the search, for example, in the IndividualSearch).
+
+\subsection tutorial_vector_range_initialization Initialization
+
+The Restriction member will be further explained here.  This member can be accesses through getters and setters, and allows to restrict the possible values that the parameter can take.  If the _from_, _to_, and _step_ are sufficient for a particular plugin's use case, then the Restriction member can be left unset.  In this tutorial, we will show how to set it to powers of 2 between the TuningParameter value boundaries. Here is the relevant code snippet, from _TutVectorRange.cc_ file at the _TutVectorRange::initialize()_ method:
+
+\snippet autotune/plugins/tutorial/src/TutVectorRange.cc initialize
+
+First, a new Restriction object is created.  After that, we iterate from 1 to the number of threads passed by the user to the framework.  We then increment the _i_ counter in powers of 2 and add it as an element of the Restriction instance.  This restricts our TuningParameter, so that it only takes power of 2 values for the OpenMP threads value.  We then set the region and the tipe to some default value, and finally set this restriction on our TuningParameter instance.
+
+By adding this restriction to the TuningParameter, this tutorial is now complete and its results can be verified by running the BT-MZ benchmark.  After building it (as describer in \ref npb), move to the benchmarks _bin/_ folder, and issue the following command to test it:
+
+~~~
+psc_frontend --apprun=./bt-mz.C.1 --sir=./bt-mz.C.1.sir --mpinumprocs=1 --tune=TutVectorRange --ompnumthreads=8
+~~~
+
+The output should be something similar to the following:
+
+~~~
+Periscope Performance Analysis Tool (ver. 1.1.0)
+[psc_frontend][INFO:fe] Preparing to start the performance analysis...
+
+Loaded Autotune components: 
+
+Plugin:           TutVectorRange
+Version:          1.0
+Description:      Explores scalability of OpenMP codes with exhaustive search. Tuning parameter has vector range restriction.
+
+Search Algorithm: Exhaustive Search
+Version:          1.0
+Description:      Explores the full space spanned by all tuning parameters.
+
+[psc_frontend][INFO:fe] Starting agents network...
+[psc_frontend][INFO:fe] Starting application ./bt-mz.C.1 using 1 MPI procs and 8 OpenMP threads...
+
+
+ NAS Parallel Benchmarks (NPB3.3-MZ-MPI) - BT-MZ MPI+OpenMP Benchmark
+
+ Number of zones:  16 x  16
+ Iterations: 200    dt:   0.000100
+ Number of active processes:     1
+
+ Use the default load factors with threads
+ Total number of threads:      8  (  8.0 threads/process)
+
+ Calculated speedup =      8.00
+
+ Time step    1
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+Optimum Scenario: 3
+
+
+All Results:
+Scenario	|  Threads	|  Time	|  Speedup	
+0		|  1		|  3.35349	|  1
+1		|  2		|  3.21493	|  1.0431
+2		|  4		|  1.79868	|  1.86442
+3		|  8		|  1.40088	|  2.39385
+
+------------------------
+
+[psc_frontend][INFO:fe] Plugin advice stored in: advice_14186.xml
+
+----------------
+ End Periscope run! Search took 12.003 seconds ( 0.044796 seconds for startup  )
+----------------
+[psc_frontend][INFO:fe] Experiment completed!
+[psc_frontend][INFO:fe] Exporting results to properties_tune_14186.psc
+~~~
+
+As can be seen in the results table, now the number of threads evaluated was restricted to powers of 2, instead of a complete traversal as in the previous tutorial.
+
+\section tutorial_regions Basic Regions Tutorial
+
+It the Periscope Tuning Framework (PTF), a Region represents a location in the source code.  Regions are static information collected by the instrumenter and stored in the SIR file (in XML format).  Region information can be obtained by the plugins and used to target optimizations only to relevant locations, depending on the aspect to be tuned in the application.
+
+All regions are stored in a tree structure (similar to an Abstract Syntax Tree, as produced by compiler frontends).  The root of the tree is the so called 'phase' region.  This region is either the _main()_ procedure of the application, if only automatic instrumentation has been performed.  If the user has added a user region through the framework's pragmas, then the outer user region will be the 'phase' region.  This has consequences for the plugins, since static information will be contained in the SIR file about all regions, but execution will be started either at the _main_ procedure or at the user region, depending on the situation. A well developed plugin will take both of these situations as possible and adjust its mode of operation accordingly.  For reference, the advantage of using user regions was described in the introduction of the first tutorial (\ref tutorial_scalability_basic).
+
+As usual, we further extend our tutorial plugin.  The changes can be found in the TutRegions.cc file.  The changes are described in the following subsections.
+
+\subsection tutorial_regions_initialization Initialization
+
+\snippet autotune/plugins/tutorial/src/TutRegions.cc initialize
+
+In the initialization, we initialize the application object _app_ and verify that the list of regions is not empty.  This is in general good practice, and a check prevents plugins that depend on region information from executing and terminating in error after the application is launched.
+
+\subsection tutorial_regions_start_tuning_step Start Tuning Step
+
+\snippet autotune/plugins/tutorial/src/TutRegions.cc startTuningStep
+
+To set up our single tuning step, we obtain the list of regions from the _app_ object, and proceed to iterate it.  Although in general not done production ready plugins, an application specific selection of the region is shown here.  The OpenMP parallel region that belongs to the file "z_solve.f" is detected.  After that, we create a new search space and a new variant space.  We add our TuningParameter instances to the variant space by iterating through them (note that in this tutorial, we only have one TuningParameter, but having the iterator is in general good practice so that the code can be reused later when parameters are added).  We then proceed to print the region to the screen, and add it to our new search space instance.  Finally, the search space is passed to the search algorithm, so that we can delegate the scenario creation and results processing to it.
+
+\subsection tutorial_regions_define_experiment Define Experiment
+
+\snippet autotune/plugins/tutorial/src/TutRegions.cc defineExperiment
+
+The last extension done to the plugin in this tutorial, is a change in the experiment definition.  Similarly to the previous step, we get the list of regions and select the one that belongs to the file "z_solve.f".  We then take the scenario that was popped from the Prepared Scenario Pool (psp) and define its objective property with this particular region only.
+
+After these changes, we are ready to test this plugin.  As usual, move to the _bin/_ directory of the benchmarks, and issue the following command:
+
+~~~
+psc_frontend --apprun=./bt-mz.C.1 --sir=./bt-mz.C.1.sir --mpinumprocs=1 --tune=TutRegions --ompnumthreads=8
+~~~
+
+Your output should be similar to the following:
+
+~~~
+Periscope Performance Analysis Tool (ver. 1.1.0)
+[psc_frontend][INFO:fe] Preparing to start the performance analysis...
+
+Loaded Autotune components: 
+
+Plugin:           TutRegions
+Version:          1.0
+Description:      Tunes parallel regions as listed in SIR file
+
+Search Algorithm: Exhaustive Search
+Version:          1.0
+Description:      Explores the full space spanned by all tuning parameters.
+
+[psc_frontend][INFO:fe] Starting agents network...
+[psc_frontend][INFO:fe] Starting application ./bt-mz.C.1 using 1 MPI procs and 8 OpenMP threads...
+
+
+ NAS Parallel Benchmarks (NPB3.3-MZ-MPI) - BT-MZ MPI+OpenMP Benchmark
+
+ Number of zones:  16 x  16
+ Iterations: 200    dt:   0.000100
+ Number of active processes:     1
+
+ Use the default load factors with threads
+ Total number of threads:      8  (  8.0 threads/process)
+
+ Calculated speedup =      8.00
+
+ Time step    1
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+Optimum Scenario: 2
+
+
+All Results:
+Scenario	|  Threads	|  Time|  Speedup	
+0		|  1		|  1.15681	|  1
+1		|  2		|  0.60644	|  1.90754
+2		|  4		|  0.388213	|  2.97983
+3		|  8		|  0.52258	|  2.21365
+
+------------------------
+
+[psc_frontend][INFO:fe] Plugin advice stored in: advice_15367.xml
+
+----------------
+ End Periscope run! Search took 13.7399 seconds ( 0.205611 seconds for startup  )
+----------------
+[psc_frontend][INFO:fe] Experiment completed!
+[psc_frontend][INFO:fe] Exporting results to properties_tune_15367.psc
+
+~~~
+
+
+
+
+
+\section tutorial_scenario_execution Scenario Execution Tutorial 
+
+\if todo_list
+- need to introduce the TuningSpecification class here
+\endif
+
+In this tutorial we will modify the _defineExperiment()_ method, of our tutorial plugin, so that we can exploit the available parallelism in the running job to accelerate the search process.  In these tutorial plugins, we have been searching for the best number of OpenMP threads; we have manipulated threads in the complete program, in a user defined region, as well as in a specific parallel reagion (in the file 'z_solve.f').  We will now add another dimension of control, be specifying the ranks.
+
+Before we start, go to your NPB source folder, and modify the _config/suite.def_ file, so that we build the BT-MZ benchmark now for 2 and 4 processes.  We have previously only worked with a single process, and parallelism has been provided exclusively by the OpenMP threads. By running now with multiple processes, we add another layer of parallelism.  Make sure the contents of the _config/suite.def_ is as follows:
+
+~~~
+bt-mz C 1
+bt-mz C 2
+bt-mz C 4
+~~~
+
+After that, issue the command:
+
+~~~
+make suite
+~~~
+
+and make sure that the three benchmarks are built correctly with the framework.  Once the binaries and SIR files are generated, move to the _bin/_ directory, and check that you have the following files there:
+
+~~~
+bt-mz.C.1
+bt-mz.C.1.sir
+bt-mz.C.2
+bt-mz.C.2.sir
+bt-mz.C.4
+bt-mz.C.4.sir
+~~~
+
+At this point, we are ready to run the plugin. Issue the following command from the _bin/_ direrctory:
+
+~~~
+psc_frontend --apprun=./bt-mz.C.2 --sir=./bt-mz.C.2.sir --mpinumprocs=2 --tune=TutMultiRank --ompnumthreads=4
+~~~
+
+You can also try the command for the 4 process case:
+
+~~~
+psc_frontend --apprun=./bt-mz.C.4 --sir=./bt-mz.C.4.sir --mpinumprocs=4 --tune=TutMultiRank --ompnumthreads=2
+~~~
+
+Note how the name of the binary, the SIR file and the number of processes must match.  This is due to how the NPB benchmarks are implemented, where they have hardcoded values for their process counts.  In the above commands, we have bounded the total number of threads to 8 (either 2 processes and 4 threads maximum, or 4 processes and 2 threads maximum); in general, it makes sense to limit the thread count to either the total physical CPU cores or hardware threads that available in your system.
+
+Here is the output of the first case, with 2 processes and 4 threads maximum, in a system with 4 cores and 2 hardware threads per core:
+
+~~~
+Periscope Performance Analysis Tool (ver. 1.1.0)
+[psc_frontend][INFO:fe] Preparing to start the performance analysis...
+
+Loaded Autotune components: 
+
+Plugin:           TutMultiRank
+Version:          1.0
+Description:      Tunes parallel region. Scenario execution is done in parallel by assigning them to different MPI processes
+
+Search Algorithm: Exhaustive Search
+Version:          1.0
+Description:      Explores the full space spanned by all tuning parameters.
+
+[psc_frontend][INFO:fe] Starting agents network...
+[psc_frontend][INFO:fe] Starting application ./bt-mz.C.2 using 2 MPI procs and 4 OpenMP threads...
+
+
+ NAS Parallel Benchmarks (NPB3.3-MZ-MPI) - BT-MZ MPI+OpenMP Benchmark
+
+ Number of zones:  16 x  16
+ Iterations: 200    dt:   0.000100
+ Number of active processes:     2
+
+ Use the default load factors with threads
+ Total number of threads:      8  (  4.0 threads/process)
+
+ Calculated speedup =      8.00
+
+ Time step    1
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+Optimum Scenario: 2
+
+
+All Results:
+Scenario	|  Threads	|  Time|  Speedup	
+0		|  1		|  0.513708	|  1
+1		|  2		|  0.286838	|  1.79093
+2		|  4		|  0.245059	|  2.09626
+
+------------------------
+
+[psc_frontend][INFO:fe] Plugin advice stored in: advice_12072.xml
+
+----------------
+ End Periscope run! Search took 5.09158 seconds ( 0.0502379 seconds for startup  )
+----------------
+[psc_frontend][INFO:fe] Experiment completed!
+[psc_frontend][INFO:fe] Exporting results to properties_tune_12072.psc
+~~~
+
+As can be seen, because we have 2 processes and 3 total scenarios, the search was performed in 2 steps.  We will now describe the change that was necessary in the plugin, at the _defineExperiment()_ call.
+
+\subsection tutorial_scenario_execution_define_experiment Define Experiment
+
+\snippet autotune/plugins/tutorial/src/TutMultiRank.cc defineExperiment
+
+As can be seen in the code snippet, the only difference in the _defineExperiment()_ mothed is that we have updated the TuningSpecification instance of our scenario.  The TuningSpecification is changed from the default (to apply the tuning action to all ranks) to now apply the tuning action only to a specific rank.  The property request is also set to the same rank, through the _setSingleTunedRegionWithPropertyRank()_ call.
+
+Note that we do this for each rank in our process list; this allows us to evaluate as many scenarios as there are ranks, in parallel, in a single experiment.
+
+
+
+
+
+\section tutorial_search_and_objective_functions Search and Objective Functions Tutorial
+
+\if todo_list
+To be done after API updates:
+- revise the c to c++ conversion of objective functions as function pointers
+- search algorithm configuration; search while max. or min.
+- explain the min and max objective functions; how to develop your own
+- the set objective func. call
+- working with the results pools
+- what can be done in the plugin vs. automating through our services
+\endif
+
+When performing a search in a space, a search algorithm will rely on a objective function to produce a single scalar that indicates the fitness of the particular combination of parameter values. The Periscope Tuning Framework (PTF) provides a way for developers to implement their own objective function; a custom objective function can then be set, and the search algorithm will use it instead of the default.  Because the PTF relies on the concept of a performance property with severities, the task of an objective function is to map the severities of found performance properties to a scalar that can be used by the search algorithm.  These properties result as a consequence of tuning actions, as explained in previous tutorials.
+
+In this tutorial, we will change the default objective function to the inverse speedup one.  We will describe this objective function and explain how it simplifies the processing and presentation of results of our tutorial plugin.
+
+\subsection tutorial_search_and_objective_functions_initialization Initialization
+
+\snippet autotune/plugins/tutorial/src/TutObjFunc.cc initialize
+
+In the initialization step, the only change necessary is to call the _setObjectiveFunction()_ with the desired objective function. This means that the search will be performed based on the inverse speedup, instead of the minimal severity of the single requested property.  Note that this has worked so far with our tutorials, because we have requested a single execution time property, and simply minimized it.
+
+\subsection tutorial_search_and_objective_functions_objectivefunction Inverse Speedup Objective Function
+
+\snippet autotune/services/src/search_common.cc Objective_Function_InverseSpeedup
+
+An objective function, in the Periscope Tuning Framework (PTF), is a C function that implements a specific interface.  The interface takes an scenario ID and a reference to the ScenarioResultsPool instance being used.
+
+The _Objective_Function_InverseSpeedup_ takes the values of the Scenario with ID zero, and uses it as reference to compute the speedup of the specified scenario ID being evaluated.
+
+\subsection tutorial_search_and_objective_functions_define_experiment Define Experiment
+
+\snippet autotune/plugins/tutorial/src/TutObjFunc.cc defineExperiment
+
+In this tutorial, our first experiment definition is different than the rest.  The first experiment is used to set the baseline at all ranks, while the others are used to compute the speedups.
+
+The changes take place at our region iterator loop.  For the Scenario with ID zero, we request an experiment that involves all processes with a single rank.  For all other scenarios, we take advantage of the available parallelism and evaluate as many scenarios as there are available MPI processes.  Note that the TuningSpecification is updated, in the later case.
+
+We can run the BT-MZ benchmark with the following command:
+
+~~~
+psc_frontend --apprun=./bt-mz.C.2 --sir=./bt-mz.C.2.sir --mpinumprocs=2 --tune=TutObjFunc --ompnumthreads=4
+~~~
+
+This will run the reference scenario in all processes (2 in this case) and then follow to perform the last 2 scenarios in parallel.  The output should resemble the following:
+
+~~~
+Periscope Performance Analysis Tool (ver. 1.1.0)
+[psc_frontend][INFO:fe] Preparing to start the performance analysis...
+
+Loaded Autotune components: 
+
+Plugin:           TutObjFunc
+Version:          1.0
+Description:      Tunes parallel region. Scenario execution is done in parallel by assigning them to different MPI processes
+
+Search Algorithm: Exhaustive Search
+Version:          1.0
+Description:      Explores the full space spanned by all tuning parameters.
+
+[psc_frontend][INFO:fe] Starting agents network...
+[psc_frontend][INFO:fe] Starting application ./bt-mz.C.2 using 2 MPI procs and 4 OpenMP threads...
+
+
+ NAS Parallel Benchmarks (NPB3.3-MZ-MPI) - BT-MZ MPI+OpenMP Benchmark
+
+ Number of zones:  16 x  16
+ Iterations: 200    dt:   0.000100
+ Number of active processes:     2
+
+ Use the default load factors with threads
+ Total number of threads:      8  (  4.0 threads/process)
+
+ Calculated speedup =      8.00
+
+ Time step    1
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+Optimum Scenario: 2
+
+
+All Results:
+Scenario	|  Process	|  Threads	|  InverseSpeedup |  Speedup	
+0		|  ALL		|  1		|  1	          |  1
+1		|  0		|  2		|  0.709363	  |  1.40972
+2		|  1		|  4		|  0.420058	  |  2.38062
+
+------------------------
+
+[psc_frontend][INFO:fe] Plugin advice stored in: advice_14183.xml
+
+----------------
+ End Periscope run! Search took 5.58136 seconds ( 0.254776 seconds for startup  )
+----------------
+[psc_frontend][INFO:fe] Experiment completed!
+[psc_frontend][INFO:fe] Exporting results to properties_tune_14183.psc
+~~~
+
+
+
+\section tutorial_multiple_regions Analysis and Region Selection Tutorial
+
+\if todo_list
+- need to add content for multi-tuning steps; one step per region to be tuned
+\endif
+
+We have now completed approximately half of all the tutorials.  In this tutorial, we will take a step back and start executing with a single process again.  There are relatively more changes to the base plugin, than in previous steps, and some methods have been rolled back to their original state after the first tutorial (\ref tutorial_scalability_basic).  If you have been following the tutorials one by one, and extending the base tutorial plugin gradually, you will need to take this one as base for the following ones instead.
+
+In this tutorial, we will look at PTF analyses and how they can be used to detect areas of interest.  The Region class, part of the Periscope Tuning Framework (PTF), is used to represent locations of interest in the source code of the application that is being tuned. We will then show how to acquire region information and process it.  Finally, we will explain how to filter the Region instances to include only the ones that impact performance significantly, in the parallel application.
+
+As for all tutorials, it is required that you have a working BT-MZ application prepared for the PTF (instructions provided in the section \ref npb) and that you have configured the framework with the '--enable-developer-mode' flag.  If the later was done, the _TutMultipleRegions_ plugin should be available for loading with the '--tune' option of the _psc_frontend_ program. 
+
+Go to your NPB source code directory and build the benchmark suite:
+
+~~~
+make suite
+~~~
+
+Once ready, move to the _bin/_ subdirectory.  You can now run the benchmark with this plugin by issuing the following command:
+
+~~~
+psc_frontend --apprun=./bt-mz.C.1 --sir=./bt-mz.C.1.sir --mpinumprocs=1 --tune=TutMultiRegions --ompnumthreads=8 
+~~~
+
+Feel free to change the number of threads given by the '--ompnumthreads' flag to match the number of cores (or hardware threads) available in your system. Output similar to the following is expected:
+
+~~~
+Periscope Performance Analysis Tool (ver. 1.1.0)
+[psc_frontend][INFO:fe] Preparing to start the performance analysis...
+
+Loaded Autotune components: 
+
+Plugin:           TutMultipleRegions
+Version:          1.0
+Description:      Tunes parallel regions as listed in SIR file
+
+Search Algorithm: Exhaustive Search
+Version:          1.0
+Description:      Explores the full space spanned by all tuning parameters.
+
+[psc_frontend][INFO:fe] Starting agents network...
+[psc_frontend][INFO:fe] Starting application ./bt-mz.C.1 using 1 MPI procs and 8 OpenMP threads...
+[psc_analysisagent][ERR:fe[1]:0] Strategy request configuration type is in undefined state. Something weird happens.
+
+ NAS Parallel Benchmarks (NPB3.3-MZ-MPI) - BT-MZ MPI+OpenMP Benchmark
+
+ Number of zones:  16 x  16
+ Iterations: 200    dt:   0.000100
+ Number of active processes:     1
+
+ Use the default load factors with threads
+ Total number of threads:      8  (  8.0 threads/process)
+
+ Calculated speedup =      8.00
+
+ Time step    1
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+
+Optimum Scenario: 1
+
+Evaluated source code region:
+File name:	rhs.f
+Start line:	28
+End line:	439
+Threads: 2 
+
+All Results:
+Scenario	|  Threads	|  Time		|  Speedup	
+0		|  1 		|  0.413327	|  1
+1		|  2 		|  0.225617	|  1.83199
+2		|  4 		|  0.286101	|  1.44469
+3		|  8 		|  0.461511	|  0.895595
+
+[psc_frontend][INFO:fe] Plugin advice stored in: advice_26932.xml
+
+----------------
+ End Periscope run! Search took 15.3512 seconds ( 0.0405681 seconds for startup  )
+----------------
+[psc_frontend][INFO:fe] Experiment completed!
+[psc_frontend][INFO:fe] Exporting results to properties_tune_26932.psc
+~~~
+
+Although the runtime for the benchmark is normally higher, the use of the _user defined_ region allows us to finish our search early (this is explained in \ref tutorial_scalability_basic, in the introduction).
+
+At the end of the run, the plugin shows which region was evaluated.  The region with the maximum runtime is selected by the plugin, based on an analysis step performed prior to the search (explained in the \ref tutorial_multiple_regions_analysis_required subsection).  In addition to the parallel region found in the file "rhs.f" (shown in the output above), since the runtimes of several parallel regions are close in time, the following regions can also appear depending on the system used and expected variability between runs:
+
+~~~
+File name: x_solve.f
+Start line: 46
+End line: 407
+
+File name: y_solve.f
+Start line: 43
+End line: 406
+
+File name: z_solve.f
+Start line: 43
+End line: 428
+~~~
+
+This situation suggests that all four regions are important for the performance of the application; however, we will tune only one in this plugin to illustrate the region selection process. To see more detail about the selection process, set the '--selective-debug=AutotunePlugins' option when launching with the _psc_frontend_ command. We will tune all detected regions in subsequent plugins.  
+
+\subsection tutorial_multiple_regions_start_tuning_step Start Tuning Step
+
+\snippet autotune/plugins/tutorial/src/TutMultipleRegions.cc startTuningStep
+
+This tutorial plugin consists of a single tuning step.  In it, we acquire the list of regions extracted by the instrumenter and placed in the SIR file, with the _get_regions()_ method.  We then proceed to iterate the regions and add only the OpenMP _parallel_ regions to a list of candidates for tuning (this list of candidates is declared in the header of the plugin).  The type of a Region can be inspected with the _get_type()_ method.  For the list of possible types, refer to the Region class header.
+
+\subsection tutorial_multiple_regions_analysis_required Analysis Required
+
+\snippet autotune/plugins/tutorial/src/TutMultipleRegions.cc analysisRequired
+
+In order to obtain performance information about the OpenMP _parallel_ regions, we request an analysis.  To perform an analysis, we need to return _true_ and pass a StrategyRequest object by reference to the runtime system. To create this object, we start by creating a new instance of the class StrategyRequestGeneralInfo and filling in its members: the name, the pedantic flag, the number of delay phases and seconds.  Here is a brief explanation of their meaning:
+- strategy_name: Name of the strategy to perform (common ones are MPI and OpenMP).
+- pedantic: If set, all properties are reported, regardless of their severity (refer to \ref properties).
+- delay_phases: Number of times to run the phase region before collecting data.
+- delay_seconds: Number of seconds to run before collecting data.
+
+After the _StrategyRequestGeneralInfo_ object is ready, we proceed with the creation of a new PropertyRequest instance.  In this case, we request an _EXECTIME_ property for the regions.  After that, we add all the candidate regions (the _parallel_ ones that we collected previously) to the request. To request these properties from all processes, we call its _addAllProcesses()_ method.  The StrategyRequest constructor requires a list of PropertyRequest objects and one StrategyRequestGeneralInfo object; therefore, we create a list, add the single request to it and then call the constructor with it and the StrategyRequestGeneralInfo instance.
+
+After returning _true_, the runtime system proceeds to perform the analysis and will populate the resulting properties in the Analysis Results Pool (arp).
+
+\subsection tutorial_multiple_regions_create_scenarios Create Scenarios
+
+\snippet autotune/plugins/tutorial/src/TutMultipleRegions.cc createScenarios
+
+In this operation, we need to set up the SearchSpace to pass to the search algorithm, so that we can delegate the creation and evaluation of scenarios to it.  
+
+We start by creating the SearchSpace and VariantSpace instances.  We add all the TuningParameter instances to the VariantSpace iteratively (note that we only have one TuningParameter in this tutorial, but having the iterator in place is good practice).  
+
+The properties are stored based on the tuning step number, in the AnalysisResultsPool.  In this tutorial, we have only one tuning step (number zero). To acquire these properties in a list, we call the _getPreAnalysisProperties()_ method of the pool.  After that, we proceed to iterate the list of properties that were collected by the runtime system, as part of the previously requested analysis. During the iteration, we collect the longest running property.  We then look at which region from our candidates this property belongs to, and select it for tuning.
+
+We can then take the selected Region and set it on the search space for the search algorithm.  After that is done, we can call the search algorithms's _createScenarios()_ method, to delegate the creation of new scenarios. All new scenarios will be placed in the Created Scenario Pool (csp) by the search algorithm.
+
+\subsection tutorial_multiple_regions_define_experiment Define Experiment
+
+\snippet autotune/plugins/tutorial/src/TutMultipleRegions.cc defineExperiment
+
+To define the experiment, we take a single scenario and set its objective property to _EXECTIME_ in the previously selected region at rank 0, and then move it to the experiment scenario pool (esp). The runtime system takes the scenarios in that pool and evaluates them.  These operations are repeated until the scenarios in the pools are all evaluated.
+
+\subsection tutorial_multiple_regions_get_advice Get Advice
+
+\snippet autotune/plugins/tutorial/src/TutMultipleRegions.cc getAdvice
+
+Here we prepare information for the user, as well as XML output for further inspection or machine processing.
+
+To get concrete information of the results processed by the search algorithm, we call its _getSearchPath()_ method and store the search path.  We then proceed to show the user which OpenMP parallel region was evaluated, and the best number of threads that were found.  After that, we present the full set of results in tabular form.
+
+Finally, we pass the name of the plugin, the ID of the best scenario, the best value and its unit (time in this case) and the collection of scenarios that were evaluated to the Advice constructor.  With the created Advice instance, the runtime system generates the XML output.
+
+
+
+
+
+
+
+\section tutorial_cross_product Tuning Parameter Cross-Product Tutorial
+
+In our tutorials so far, we have explored the effects of changing the number of threads of OpenMP parallel regions.  The parameters has been so far only one.  There are several cases where multiple parameters that affect performance can be evaluated, or that a single parameter could apply to different locations in the code.  In this tutorial, the later case will be covered, with the number of OpenMP threads applied to code Regions separately.
+
+In the following subsections, the changes to this plugin will be covered.  At the end of the tutorial, we will run the plugin and comment on the multiplicative effect on time and memory requirements that these changes bring.
+
+
+\subsection tutorial_cross_product_initialize Initialization
+
+\snippet autotune/plugins/tutorial/src/TutTPCross.cc initialize
+
+At initialization, we have only initialized the noSigRegions variable to the number of regions to tune.
+
+\subsection tutorial_cross_product_create_scenarios Cross-Product Scenarios Creation
+
+\snippet autotune/plugins/tutorial/src/TutTPCross.cc createScenarios
+
+The _createScenarios()_ method has been updated in several ways.  First, the properties gathered from the pre-analysis are processes.  A map of their execution time is populated and then sorted based on their time.  This map is then used to select the total number of regions considered for this plugin, as set in the initialization.  For each one of these regions, a VariantSpace with its parameters is created, and with it a search space.  These search spaces are then added one by one to the search algorithm, before calling its _createScenarios()_ method.
+
+The process or creating scenarios is offloaded to the search algorithm, as in earlier plugins.  In the _createScenarios()_ method, the search spaces are processed and the cross-product is generated.  
+
+\subsection tutorial_cross_product_get_advice Generating Advice for the User
+
+\snippet autotune/plugins/tutorial/src/TutTPCross.cc getAdvice
+
+The _getAdvice()_ method is updated to show each of the found optimal OpenMP thread counts per evaluated region.  The table output is also updated to show these details, for each of the evaluated scenarios.  Other than that, the these method remains largely unchanged from earlier tutorials.
+
+\subsection tutorial_cross_product_output Running the Plugin
+
+We are now ready to run the plugin and observe its output.  After building the BT-MZ benchmark, move to the _bin/_ folder of the suite and issue the following command:
+
+~~~
+psc_frontend --apprun=./bt-mz.C.1 --sir=./bt-mz.C.1.sir --mpinumprocs=1 --tune=TutTPCross --ompnumthreads=8
+~~~
+
+The plugin should run for several minutes in this case, and the output should be similar to the following:
+
+~~~
+Periscope Performance Analysis Tool (ver. 1.1.0)
+[psc_frontend][INFO:fe] Preparing to start the performance analysis...
+
+Loaded Autotune components: 
+
+Plugin:           TutTPCross
+Version:          1.0
+Description:      cross product of tuning parameter values for multiple significant regions
+
+Search Algorithm: Exhaustive Search
+Version:          1.0
+Description:      Explores the full space spanned by all tuning parameters.
+
+[psc_frontend][INFO:fe] Starting agents network...
+[psc_frontend][INFO:fe] Starting application ./bt-mz.C.1 using 1 MPI procs and 8 OpenMP threads...
+[psc_analysisagent][ERR:fe[1]:0] Strategy request configuration type is in undefined state. Something weird happens.
+
+ NAS Parallel Benchmarks (NPB3.3-MZ-MPI) - BT-MZ MPI+OpenMP Benchmark
+
+ Number of zones:  16 x  16
+ Iterations: 200    dt:   0.000100
+ Number of active processes:     1
+
+ Use the default load factors with threads
+ Total number of threads:      8  (  8.0 threads/process)
+
+ Calculated speedup =      8.00
+
+ Time step    1
+
+ <truncated output ...>
+
+ Time step  200
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+ Verification being performed for class C
+ accuracy setting for epsilon =  0.1000000000000E-07
+ Comparison of RMS-norms of residual
+           1 0.3457703287806E+07 0.3457703287806E+07 0.1094896221768E-12
+           2 0.3213621375929E+06 0.3213621375929E+06 0.1320422658492E-12
+           3 0.7002579656870E+06 0.7002579656870E+06 0.1479592400271E-13
+           4 0.4517459627471E+06 0.4517459627471E+06 0.2254882500313E-13
+           5 0.2818715870791E+07 0.2818715870791E+07 0.1486830094937E-14
+ Comparison of RMS-norms of solution error
+           1 0.2059106993570E+06 0.2059106993570E+06 0.1542041240569E-12
+           2 0.1680761129461E+05 0.1680761129461E+05 0.2129851222420E-12
+           3 0.4080731640795E+05 0.4080731640795E+05 0.3066765520988E-13
+           4 0.2836541076778E+05 0.2836541076778E+05 0.1033727641923E-12
+           5 0.2136807610771E+06 0.2136807610771E+06 0.2334508972703E-12
+ Verification Successful
+
+
+ BT-MZ Benchmark Completed.
+ Class           =                        C
+ Size            =            480x  320x 28
+ Iterations      =                      200
+ Time in seconds =                   616.41
+ Total processes =                        1
+ Total threads   =                        8
+ Mop/s total     =                  3937.30
+ Mop/s/thread    =                   492.16
+ Operation type  =           floating point
+ Verification    =               SUCCESSFUL
+ Version         =                    3.3.1
+ Compile date    =              29 Sep 2014
+
+ Compile options:
+    F77          = psc_instrument -v -d -t user,mpi,omp -s ../...
+    FLINK        = $(F77)
+    F_LIB        = (none)
+    F_INC        = -I$(HOME)/install/mpi/include
+    FFLAGS       = -O3 -fopenmp
+    FLINKFLAGS   = $(FFLAGS)
+    RAND         = (none)
+
+
+ Please send all errors/feedbacks to:
+
+ NPB Development Team
+ npb@nas.nasa.gov
+
+
+
+
+ NAS Parallel Benchmarks (NPB3.3-MZ-MPI) - BT-MZ MPI+OpenMP Benchmark
+
+ Number of zones:  16 x  16
+ Iterations: 200    dt:   0.000100
+ Number of active processes:     1
+
+ Use the default load factors with threads
+ Total number of threads:      8  (  8.0 threads/process)
+
+ Calculated speedup =      8.00
+
+ Time step    1
+
+ <truncated output ...>
+
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+
+Optimum Scenario: 170
+
+(Region,Threads): 
+(y_solve.f,4) (z_solve.f,4) (x_solve.f,4) (rhs.f,4) 
+
+All Results:
+Scenario	|  (Region,Threads)	|  Time		|  Speedup	
+0		|  (y_solve.f,1) (z_solve.f,1) (x_solve.f,1) (rhs.f,1) 		|  0.372674	|  1
+1		|  (y_solve.f,1) (z_solve.f,1) (x_solve.f,1) (rhs.f,2) 		|  0.223169	|  1.66992
+2		|  (y_solve.f,1) (z_solve.f,1) (x_solve.f,1) (rhs.f,4) 		|  0.234621	|  1.58841
+
+ <truncated output ...>
+
+254		|  (y_solve.f,8) (z_solve.f,8) (x_solve.f,8) (rhs.f,4) 		|  0.278915	|  1.33616
+255		|  (y_solve.f,8) (z_solve.f,8) (x_solve.f,8) (rhs.f,8) 		|  0.199476	|  1.86826
+
+[psc_frontend][INFO:fe] Plugin advice stored in: advice_23896.xml
+
+----------------
+ End Periscope run! Search took 792.195 seconds ( 0.068692 seconds for startup  )
+----------------
+[psc_frontend][INFO:fe] Experiment completed!
+[psc_frontend][INFO:fe] Exporting results to properties_tune_23896.psc
+
+~~~
+
+The above output was truncated for brevity.
+
+As can be seen, both the runtime and number of evaluated scenarios are a lot larger than earlier plugins.  Note that, in spite of the modest increase of regions, the increase in the search space generated is substantial.  A way to cope with this limitation is to select more clever search algorithms, instead of exhaustive search.  In the next tutorial, we will cover one of the PTF's included search algorithm.
+
+\section tutorial_genetic_search Genetic Search Tutorial
+
+As seen in the previous tutorial, search spaces can grow quickly when adding parameters or code Regions to tune.  As a consequence, the time required to search them exhaustively increases greatly. In general, it is advisable that plugin developers look for ways to reduce the search spaces; we have shown ways of filtering areas of interest with the use of the pre-analysis functionality of the PTF.  Additionally, developers can include expert knowledge in their plugins, such that unnecessary combinations of parameters are not evaluated; the use of Restriction instances can aid developers in this task.
+
+After all measures have been taken, a reduced space to search can be achieved.  Unfortunately, as also seen in the previous tutorial, even relatively small spaces require significant amounts of time to be searched exhaustively. Significant improvements in search time can be achieved by the use of alternative search algorithms.  There is a compromise in the quality of the result, when compared to the exhaustive search approach; the compromise itself will depend on the algorithm selected.  In this tutorial, we will show how to select alternative algorithms, and focus on the GDE3 genetic algorithm specifically.
+
+
+\subsection tutorial_genetic_search_output_initialization Initialization
+
+\snippet autotune/plugins/tutorial/src/TutGenSearch.cc initialize
+
+The only change required in the initialization is to load and initialize the GDE3 algorithm.  This is done as before, with an additional step that is specific to the search algorithm's implementation.  Because this algorithm is based on a random strategy, a time limit is set with the _setTimer()_ call.  Before we call an implementation specific method, we perform a cast to its specific type.
+
+Other than selecting the algorithm and setting it up, no other change is necessary.
+
+\subsection tutorial_genetic_search_output Running the Plugin
+
+We can now run the tutorial plugin, with the new search algorithm, with the following command:
+
+~~~
+psc_frontend --apprun=./bt-mz.C.1 --sir=./bt-mz.C.1.sir --mpinumprocs=1 --tune=TutGenSearch --ompnumthreads=8
+~~~
+
+The output should resemble the following:
+
+~~~
+Periscope Performance Analysis Tool (ver. 1.1.0)
+[psc_frontend][INFO:fe] Preparing to start the performance analysis...
+
+Loaded Autotune components: 
+
+Plugin:           TutGenSearch
+Version:          1.0
+Description:      Using genetic search with time limit
+
+Search Algorithm: GDE3 Search
+Version:          1.0
+Description:      Evolutionary algorithm that keeps best scenarios and discards other during course of generations.
+
+[psc_frontend][INFO:fe] Starting agents network...
+[psc_frontend][INFO:fe] Starting application ./bt-mz.C.1 using 1 MPI procs and 8 OpenMP threads...
+[psc_analysisagent][ERR:fe[1]:0] Strategy request configuration type is in undefined state. Something weird happens.
+
+ NAS Parallel Benchmarks (NPB3.3-MZ-MPI) - BT-MZ MPI+OpenMP Benchmark
+
+ Number of zones:  16 x  16
+ Iterations: 200    dt:   0.000100
+ Number of active processes:     1
+
+ Use the default load factors with threads
+ Total number of threads:      8  (  8.0 threads/process)
+
+ Calculated speedup =      8.00
+
+ Time step    1
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+ Time step   20
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+Optimum Scenario: 9
+
+(Region,Threads): 
+(y_solve.f,2) (z_solve.f,1) (x_solve.f,1) (rhs.f,2) 
+
+All Results:
+Scenario	|  (Region,Threads)	|  Time		|  Speedup	
+0		|  (y_solve.f,1) (z_solve.f,8) (x_solve.f,4) (rhs.f,1) 		|  0.580309	|  1
+1		|  (y_solve.f,2) (z_solve.f,4) (x_solve.f,4) (rhs.f,8) 		|  1.42914	|  0.406055
+2		|  (y_solve.f,2) (z_solve.f,4) (x_solve.f,8) (rhs.f,2) 		|  0.276286	|  2.10039
+3		|  (y_solve.f,8) (z_solve.f,1) (x_solve.f,4) (rhs.f,1) 		|  0.411348	|  1.41075
+4		|  (y_solve.f,4) (z_solve.f,8) (x_solve.f,1) (rhs.f,1) 		|  0.546967	|  1.06096
+5		|  (y_solve.f,8) (z_solve.f,8) (x_solve.f,1) (rhs.f,2) 		|  0.398639	|  1.45573
+6		|  (y_solve.f,1) (z_solve.f,2) (x_solve.f,4) (rhs.f,8) 		|  2.31245	|  0.25095
+7		|  (y_solve.f,1) (z_solve.f,1) (x_solve.f,4) (rhs.f,1) 		|  0.372016	|  1.5599
+8		|  (y_solve.f,1) (z_solve.f,1) (x_solve.f,8) (rhs.f,2) 		|  0.283994	|  2.04338
+9		|  (y_solve.f,2) (z_solve.f,1) (x_solve.f,1) (rhs.f,2) 		|  0.224474	|  2.58519
+10		|  (y_solve.f,1) (z_solve.f,1) (x_solve.f,4) (rhs.f,2) 		|  0.229019	|  2.53389
+11		|  (y_solve.f,4) (z_solve.f,4) (x_solve.f,4) (rhs.f,8) 		|  1.56069	|  0.371828
+12		|  (y_solve.f,2) (z_solve.f,4) (x_solve.f,4) (rhs.f,2) 		|  0.520077	|  1.11581
+13		|  (y_solve.f,8) (z_solve.f,1) (x_solve.f,2) (rhs.f,1) 		|  0.457129	|  1.26946
+14		|  (y_solve.f,4) (z_solve.f,2) (x_solve.f,8) (rhs.f,1) 		|  0.506041	|  1.14676
+15		|  (y_solve.f,8) (z_solve.f,4) (x_solve.f,1) (rhs.f,2) 		|  0.344122	|  1.68635
+16		|  (y_solve.f,2) (z_solve.f,2) (x_solve.f,4) (rhs.f,8) 		|  2.16272	|  0.268324
+17		|  (y_solve.f,4) (z_solve.f,1) (x_solve.f,2) (rhs.f,8) 		|  1.58534	|  0.366047
+18		|  (y_solve.f,2) (z_solve.f,1) (x_solve.f,2) (rhs.f,8) 		|  2.30527	|  0.251731
+19		|  (y_solve.f,4) (z_solve.f,4) (x_solve.f,8) (rhs.f,2) 		|  0.289763	|  2.0027
+
+[psc_frontend][INFO:fe] Plugin advice stored in: advice_15100.xml
+
+----------------
+ End Periscope run! Search took 76.506 seconds ( 0.036761 seconds for startup  )
+----------------
+[psc_frontend][INFO:fe] Experiment completed!
+[psc_frontend][INFO:fe] Exporting results to properties_tune_15100.psc
+
+~~~
+
+As can be seen, the time to search the alternative is greatly reduced when compared to the full exhaustive search with the cross product of the previous tutorial.  
+
+
+
+
+\section tutorial_scenario_analysis Scenario Analysis Tutorial
+
+As has been covered in earlier tutorials, the automatic tuning process with the PTF relies on the setting of TuningParameters in particular code Regions, then measuring the effects through the collection of performance Properties.  These structures, used to set parameters and measure effects, are contained in Scenario instance that are evaluated in experiments.  Together with the Scenarios, a plugin can request analysis strategies.  Analysis strategies were covered already in the \ref tutorial_multiple_regions, where a pre-analysis is requested its results used to select regions that are OpenMP parallel, and therefore relevant for our automatic tuner.  In this section, we will show how to request for an analysis along with an experiment, in order to collect additional performance properties under the conditions set by a specific Scenario.
+
+\subsection tutorial_scenario_analysis_running_experiment_definition Defining an Experiment with an Analysis
+
+\snippet autotune/plugins/tutorial/src/TutScenAnalysis.cc defineExperiment
+
+The only changes required for this plugin take place at the _defineExperiment()_ mothed.  We start by a _pop_, _configure_ and _push_ sequence, just like in earlier plugins.  In this case, we select the phase region and request its time of execution at rank zero.  In addition to this, we then need to define the analysis.  How to define the analysis is covered in the \ref tutorial_multiple_regions.  For this plugin, we select the regions of interest that were detected in the pre-analysis.  Finally, we set the StrategyRequest instance to this new analysis and set the _analysisRequired_ flag to true.
+
+\subsection tutorial_scenario_analysis_advice Providing Extra Information to the User
+
+\snippet autotune/plugins/tutorial/src/TutScenAnalysis.cc getAdvice
+
+The _getAdvice_ method is updated to show the extra information that was collected with the analysis, along with the experiment.  For that, the best times per sub-region are collected, and then presented to the user, as shown in the above code snippet.
+
+\subsection tutorial_scenario_analysis_running Running the Plugin
+
+After making sure that our NPB BT-MZ benchmark is built, we move to its _bin/_ directory and run it with the following command:
+
+~~~
+psc_frontend --apprun=./bt-mz.C.1 --sir=./bt-mz.C.1.sir --mpinumprocs=1 --tune=TutScenAnalysis --ompnumthreads=4
+~~~
+
+~~~
+Periscope Performance Analysis Tool (ver. 1.1.0)
+[psc_frontend][INFO:fe] Preparing to start the performance analysis...
+
+Loaded Autotune components: 
+
+Plugin:           TutScenAnalysis
+Version:          1.0
+Description:      Scenario analysis to get significant regions in one experiment
+
+Search Algorithm: Exhaustive Search
+Version:          1.0
+Description:      Explores the full space spanned by all tuning parameters.
+
+[psc_frontend][INFO:fe] Starting agents network...
+[psc_frontend][INFO:fe] Starting application ./bt-mz.C.1 using 1 MPI procs and 4 OpenMP threads...
+[psc_analysisagent][ERR:fe[1]:0] Strategy request configuration type is in undefined state. Something weird happens.
+
+ NAS Parallel Benchmarks (NPB3.3-MZ-MPI) - BT-MZ MPI+OpenMP Benchmark
+
+ Number of zones:  16 x  16
+ Iterations: 200    dt:   0.000100
+ Number of active processes:     1
+
+ Use the default load factors with threads
+ Total number of threads:      4  (  4.0 threads/process)
+
+ Calculated speedup =      4.00
+
+ Time step    1
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+
+
+Optimum Scenario: 2
+Threads: 4 
+
+All Results:
+Scenario	|  Threads	|  Time		|  Speedup	
+0		|  1		|  3.37625	|  1
+1		|  2		|  1.76283	|  1.91524
+2		|  4		|  1.61003	|  2.09701
+
+Best configurations for individual regions:
+
+Region: y_solve.f Threads: 4 ExecTime: 0.443462
+Region: z_solve.f Threads: 4 ExecTime: 0.445081
+Region: x_solve.f Threads: 4 ExecTime: 0.422244
+Region: rhs.f     Threads: 2 ExecTime: 0.22321
+
+[psc_frontend][INFO:fe] Plugin advice stored in: advice_7932.xml
+
+----------------
+ End Periscope run! Search took 10.1408 seconds ( 0.0552111 seconds for startup  )
+----------------
+[psc_frontend][INFO:fe] Experiment completed!
+[psc_frontend][INFO:fe] Exporting results to properties_tune_7932.psc
+~~~
+
+As can be seen, we ran the analysis alongside the experiment and obtained additional time information for each region, in addition to the phase region.  The information is presented to the user, in addition to the total runtime. 
+
+
+\section tutorial_multiple_tuning_steps Multiple Tuning Steps Tutorial
+
+This tutorial illustrates how to work with tuning steps.  Tuning steps are the outer-most loops that the framework allows (as presented in section \ref plugin_interface).  The tuning plugin developer can then think of how to better divide the tuning process in steps.  In general, tuning steps make it possible for plugins to gather information that may require to be done separately to avoid interference.  It can also happen that the complete tuning flow of a plugin can be presented conceptually more clearlly or elengantly in separate steps.
+
+\subsection tutorial_multiple_tuning_steps_initialize Initialization
+
+\snippet autotune/plugins/tutorial/src/TutMultiTuning.cc initialize
+
+The first small change done, from the earlier plugins, is to add a variable to count the tuning steps and one to define the maximum number.  Although in many cases the number of tuning steps may be fixed for a plugin, this is not always the case; for example, in many cases the number of tuning steps may depend on the results of an analysis. 
+
+\subsection tutorial_multiple_tuning_steps_start_tuning_step Start Tuning Step
+
+\snippet autotune/plugins/tutorial/src/TutMultiTuning.cc startTuningStep
+
+As can be seen in the code snippet above, the only change from the previous tutorial is that the processing of regions is only done in the first tuning step.  This is done by checking that the tuning step counter value is still 0.
+
+\subsection tutorial_multiple_tuning_steps_analysis_required Analysis Required
+
+\snippet autotune/plugins/tutorial/src/TutMultiTuning.cc analysisRequired
+
+The code above shows that the analysis is only performed for tuning step 0.  The rest of the code for this tutorial plugin remains unchanged.
+
+\subsection tutorial_multiple_tuning_steps_create_scenarios Create Scenarios
+
+\snippet autotune/plugins/tutorial/src/TutMultiTuning.cc createScenarios
+
+The changes in the scenario creation operation are more involved.  As can be seen in the snippet above, because the analysis is performed only in tuning step 0, they are also only processed here for that specific tuning step.
+
+The interesting part of this tutorial comes after that: the next region in term of its execution time is selected.  The consequence is that this plugin evaluates one region at a time, based on its importance (with the criterion here being time) for a total of regions based on the maximum number of tuning steps defined at initialization.  
+
+Before continuing with the next operations, we proceed to perform the usual operations by defining the search space and delegating the scenario creation process to the search algorithm.
+
+\subsection tutorial_multiple_tuning_steps_finish_tuning_step Finish Tuning Step
+
+\snippet autotune/plugins/tutorial/src/TutMultiTuning.cc finishTuningStep
+
+Once the tuning step is finished, we increment the tuning step counter and proceed to do any necessary post-processing of the results.
+
+As can be seen in the code snippet, the best result and the search paths are collected per tuning step.  These are relevant to the single region being tested.  Finally, a small summary of the results collected in the particular tuning step is presented to the user.
+
+\subsection tutorial_multiple_tuning_steps_tuning_finished Tuning Finished
+
+\snippet autotune/plugins/tutorial/src/TutMultiTuning.cc tuningFinished
+
+Here the plugin simply checks if the maximum number of tuning steps is reached.
+
+
+\subsection tutorial_multiple_tuning_steps_get_advice Get Advice
+
+\snippet autotune/plugins/tutorial/src/TutMultiTuning.cc getAdvice
+
+As we reach the end of all the tuning steps, the getAdvice operation is performed.  In this particular plugin, a summary of the results per region is provided to the user (as can be seen in the code snippet above).  Other than that, the structure of this getAdvice implementation is similar to earlier ones.
+
+To finish this tutorial, build and install the framework as usual and run the NPB benchmark with this plugin.  Here is the command to run it with BT-MZ size C and 4 OpenMP threads:
+
+~~~
+psc_frontend --apprun=./bt-mz.C.1 --sir=./bt-mz.C.1.sir --mpinumprocs=1 --tune=TutMultiTuning --ompnumthreads=4
+~~~
+
+The output should resemble the following:
+
+~~~
+Periscope Performance Analysis Tool (ver. 1.1.0)
+[psc_frontend][INFO:fe] Preparing to start the performance analysis...
+
+Loaded Autotune components: 
+
+Plugin:           TutMultiTuning
+Version:          1.0
+Description:      Multiple Tuning steps for tuning different regions
+
+Search Algorithm: Exhaustive Search
+Version:          1.0
+Description:      Explores the full space spanned by all tuning parameters.
+
+[psc_frontend][INFO:fe] Starting agents network...
+[psc_frontend][INFO:fe] Starting application ./bt-mz.C.1 using 1 MPI procs and 4 OpenMP threads...
+
+
+ NAS Parallel Benchmarks (NPB3.3-MZ-MPI) - BT-MZ MPI+OpenMP Benchmark
+
+ Number of zones:  16 x  16
+ Iterations: 200    dt:   0.000100
+ Number of active processes:     1
+
+ Use the default load factors with threads
+ Total number of threads:      4  (  4.0 threads/process)
+
+ Calculated speedup =      4.00
+
+ Time step    1
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+Evaluated source code region:
+File name:	./prep/y_solve.f
+Start line:	45
+End line:	408
+Threads: 4 
+Optimum Scenario: 2
+
+
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+Evaluated source code region:
+File name:	./prep/z_solve.f
+Start line:	45
+End line:	430
+Threads: 4 
+Optimum Scenario: 5
+
+
+
+
+All Results:
+Scenario	|  TuningStep	|  (Region,Threads)	|  Time	
+0		|  1		|  (./prep/y_solve.f,1) 		|  1.12716
+1		|  1		|  (./prep/y_solve.f,2) 		|  0.500215
+2		|  1		|  (./prep/y_solve.f,4) 		|  0.430359
+3		|  2		|  (./prep/z_solve.f,1) 		|  0.987182
+4		|  2		|  (./prep/z_solve.f,2) 		|  0.493147
+5		|  2		|  (./prep/z_solve.f,4) 		|  0.270339
+
+[psc_frontend][INFO:fe] Plugin advice stored in: advice_21083.xml
+
+----------------
+ End Periscope run! Search took 14.5127 seconds ( 0.032449 seconds for startup  )
+----------------
+[psc_frontend][INFO:fe] Experiment completed!
+[psc_frontend][INFO:fe] Exporting results to properties_tune_21083.psc
+~~~
+
+
+
+
+
+
+
+\section tutorial_multiple_objective_tuning Multiple Objective Tutorial
+
+In this tutorial, a plugin that requests multiple objective properties is presented.  When tuning for more than one performance property, such as the combination of time and energy which will be presented in this tutorial, several possible combinations can be selected by a plugin given some sort of bias towards one parameter or the other.  In this tutorial, it is left to the plugin developer to develop an algorithm for the selection of the optimal result.
+
+\subsection tutorial_multiple_objective_tuning_define_experiment Define Experiment
+
+\snippet autotune/plugins/tutorial/src/TutMultiObj.cc defineExperiment
+
+In order to request multiple objective properties, it is sufficient to add these in the define experiment step.  After that, the plugin should collect these properties from the results pools.  As can be seen in the code snippet above, this is a simple matter.  The developer only needs to add the additional property IDs to the list passed to the property request.
+
+\subsection tutorial_multiple_objective_tuning_get_advice Get Advice
+
+\snippet autotune/plugins/tutorial/src/TutMultiObj.cc getAdvice
+
+The getAdvice operation on this plugin is extended to present the additional properties collected in the experiments.
+
+To complete this tutorial, proceed to run this plugin with the BT-MZ benchmark:
+
+~~~
+psc_frontend --apprun=./bt-mz.C.1 --sir=./bt-mz.C.1.sir --mpinumprocs=1 --tune=TutMultiTuning --ompnumthreads=4
+~~~
+
+The output should resemble the following:
+
+~~~
+Periscope Performance Analysis Tool (ver. 1.1.0)
+[psc_frontend][INFO:fe] Preparing to start the performance analysis...
+
+Loaded Autotune components: 
+
+Plugin:           TutMultiObj
+Version:          1.0
+Description:      Explores scalability of OpenMP codes with exhaustive search. Tuning parameter has vector range restriction.
+
+Search Algorithm: Exhaustive Search
+Version:          1.0
+Description:      Explores the full space spanned by all tuning parameters.
+
+[psc_frontend][INFO:fe] Starting agents network...
+[psc_frontend][INFO:fe] Starting application ./bt-mz.C.1 using 1 MPI procs and 4 OpenMP threads...
+
+
+ NAS Parallel Benchmarks (NPB3.3-MZ-MPI) - BT-MZ MPI+OpenMP Benchmark
+
+ Number of zones:  16 x  16
+ Iterations: 200    dt:   0.000100
+ Number of active processes:     1
+
+ Use the default load factors with threads
+ Total number of threads:      4  (  4.0 threads/process)
+
+ Calculated speedup =      4.00
+
+Your strategy tries to add ENOPT measurements which were not enabled during the compile time
+ Time step    1
+Your strategy tries to delete ENOPT measurements which were not enabled during the compile time
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+Optimum Scenario: 2
+
+
+All Results:
+Scenario	|  Threads	|  Time	|  Energy Consumption	|  Energy Delay Product	
+0		|  1		|  3.26077	|  0	|  0
+1		|  2		|  1.68557	|  0	|  0
+2		|  4		|  1.0091	|  0	|  0
+
+------------------------
+
+[psc_frontend][INFO:fe] Plugin advice stored in: advice_26674.xml
+
+----------------
+ End Periscope run! Search took 8.79311 seconds ( 0.02825 seconds for startup  )
+----------------
+[psc_frontend][INFO:fe] Experiment completed!
+[psc_frontend][INFO:fe] Exporting results to properties_tune_26674.psc
+~~~
+
+
+\section tutorial_combined_scenarios Combined Scenarios Tutorial
+
+By now, the reader should be aware of the importance of reducing the time required for parameter sweeps while automatic tuning.  We have presented various techniques that help accelerate the search process in PTF, such as exploiting available parallelism, detecting regions of interest, etc.  In this section, we show how to combine several scenarios in a single experiment (on a single process), in order to further accelerate the search.
+
+\subsection tutorial_combined_scenarios_initialize Initialize
+
+\snippet autotune/plugins/tutorial/src/TutCombineScen.cc initialize
+
+After the usual parameter processing is done in the initialization, the number of significant regions is defined.  An equal number of search algorithm instances are collected in an array, to be used with these regions.
+
+\subsection tutorial_combined_scenarios_start_tuning_step Start Tuning Step
+
+\snippet autotune/plugins/tutorial/src/TutCombineScen.cc startTuningStep
+
+Similarly to earlier tutorials, in this plugin we search for all parallel regions and add them to a candidate for tuning list.
+
+
+\subsection tutorial_combined_scenarios_analysis_required  Analysis Required
+
+\snippet autotune/plugins/tutorial/src/TutCombineScen.cc analysisRequired
+
+An analysis is required, to determine the execution time of the parallel regions.  This is again similar to earlier tutorials.
+
+
+\subsection tutorial_combined_scenarios_create_scenarios Create Scenarios
+
+\snippet autotune/plugins/tutorial/src/TutCombineScen.cc createScenarios
+ 
+The create scenarios is quite different this time, as can be seen in the above code snippet.  After the execution times of the candidate regions are collected, these are sorted.  This is similar to earlier tutorials.  What is new is that after this is done, we select the regions in order of importance (based on execution time in this case) and create a search space separately for each one.  This search space is then added to a search algorithm dedicated to this region alone.
+
+
+\subsection tutorial_combined_scenarios_define_experiment Define Experiment
+
+\snippet autotune/plugins/tutorial/src/TutCombineScen.cc defineExperiment
+
+As can be seen in the code snippet, in this operation, one scenario is popped at a time and set one each for the number of significant regions.  The correct offset needs to be computed by the plugin, so that the generated scenario from the specific search algorithm matches the intended region.
+
+\subsection tutorial_combined_scenarios_get_advice Get Advice
+
+\snippet autotune/plugins/tutorial/src/TutCombineScen.cc getAdvice
+
+As can be seen above, the getAdvice operation is similar to earlier tutorials.  This plugin presents a summary to the user, with the region and thread combination as well as the optimal value for each of the regions.
+
+To finish this tutorial, run the BT-MZ benchmark with 1 MPI process and 4 OpenMP threads:
+
+~~~
+psc_frontend --apprun=./bt-mz.C.1 --sir=./bt-mz.C.1.sir --mpinumprocs=1 --tune=TutCombineScen --ompnumthreads=4
+~~~
+
+The output should resemble the following:
+
+~~~
+Periscope Performance Analysis Tool (ver. 1.1.0)
+[psc_frontend][INFO:fe] Preparing to start the performance analysis...
+
+Loaded Autotune components: 
+
+Plugin:           TutCombineScen
+Version:          1.0
+Description:      Scenario analysis to get significant regions in one experiment
+
+Search Algorithm: Exhaustive Search
+Version:          1.0
+Description:      Explores the full space spanned by all tuning parameters.
+
+
+Search Algorithm: Exhaustive Search
+Version:          1.0
+Description:      Explores the full space spanned by all tuning parameters.
+
+
+Search Algorithm: Exhaustive Search
+Version:          1.0
+Description:      Explores the full space spanned by all tuning parameters.
+
+
+Search Algorithm: Exhaustive Search
+Version:          1.0
+Description:      Explores the full space spanned by all tuning parameters.
+
+[psc_frontend][INFO:fe] Starting agents network...
+[psc_frontend][INFO:fe] Starting application ./bt-mz.C.1 using 1 MPI procs and 4 OpenMP threads...
+
+
+ NAS Parallel Benchmarks (NPB3.3-MZ-MPI) - BT-MZ MPI+OpenMP Benchmark
+
+ Number of zones:  16 x  16
+ Iterations: 200    dt:   0.000100
+ Number of active processes:     1
+
+ Use the default load factors with threads
+ Total number of threads:      4  (  4.0 threads/process)
+
+ Calculated speedup =      4.00
+
+ Time step    1
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+[psc_frontend][INFO:fe] Prepared scenario pool not empty, still searching...
+
+
+Optimal Scenario for region:
+Region Name: ./prep/z_solve.f
+Optimal Scenario Id:2
+
+
+Optimal Scenario for region:
+Region Name: ./prep/y_solve.f
+Optimal Scenario Id:5
+
+
+Optimal Scenario for region:
+Region Name: ./prep/x_solve.f
+Optimal Scenario Id:8
+
+
+Optimal Scenario for region:
+Region Name: ./prep/rhs.f
+Optimal Scenario Id:10
+
+
+All Results:
+Scenario	|  (Region,Threads)	|  Time	
+0		|  (./prep/z_solve.f,1) 		|  1.09068
+1		|  (./prep/z_solve.f,2) 		|  0.560999
+2		|  (./prep/z_solve.f,4) 		|  0.440924
+3		|  (./prep/y_solve.f,1) 		|  1.10547
+4		|  (./prep/y_solve.f,2) 		|  0.555337
+5		|  (./prep/y_solve.f,4) 		|  0.437173
+6		|  (./prep/x_solve.f,1) 		|  1.07261
+7		|  (./prep/x_solve.f,2) 		|  0.537116
+8		|  (./prep/x_solve.f,4) 		|  0.416433
+9		|  (./prep/rhs.f,1) 		|  0.485776
+10		|  (./prep/rhs.f,2) 		|  0.244879
+11		|  (./prep/rhs.f,4) 		|  0.279715
+
+[psc_frontend][INFO:fe] Plugin advice stored in: advice_30288.xml
+
+----------------
+ End Periscope run! Search took 11.9037 seconds ( 0.0330439 seconds for startup  )
+----------------
+[psc_frontend][INFO:fe] Experiment completed!
+[psc_frontend][INFO:fe] Exporting results to properties_tune_30288.psc
+~~~
+
+If you reached this point, you are finished with the PTF tutorials and are now prepared to start writing automatic tuners with the framework.
+
+*/

@@ -1,0 +1,129 @@
+%{
+#include <cstdio>
+#include <vector>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
+#include <iostream>
+#include <sstream>
+#include "TuningParameter.h"
+#include "psc_errmsg.h"
+//#include "lex.h"
+
+using namespace std;
+
+//#include "y.tab.h"  // to get the token types that we return
+
+// stuff from flex that bison needs to know about:
+extern "C" int yylex();
+//extern "C" int yyparse();
+extern "C" FILE *yyin;
+extern int line_num;
+extern char *yytext;                        /* current token */
+//extern "C" void yypush_buffer_state(int *);
+//extern "C" int* yy_create_buffer(FILE*, int);
+
+
+void yyerror(const char *s);
+
+stringstream strs;
+//TuningParameter *tp;
+//vector<TuningParameter*> tuningParameters;
+vector<unsigned int> scenarioIds;
+unsigned int optionCt;
+unsigned int totSSSize = 1;
+
+
+%}
+
+//%defines "conf_parser.hpp"
+
+
+%union {
+  int ival;
+  char *sval;
+}
+
+%start Specification
+
+%token TP
+%token SCENARIOS
+%token <ival> INT
+%token <sval> STRING
+
+%%
+Specification: StmtList
+
+StmtList: Stmt StmtList
+        | Stmt
+
+Stmt: TuningParameterSpecification ';'
+    | ScenariosSpecification ';'
+
+TuningParameterSpecification: TP {
+//                                  tp = new TuningParameter();
+                                  optionCt = 0;
+                              } STRING {
+//                                  printf("TP String1 = %s ", $3);
+//                                  tp->setName($3);
+                              } '=' STRING {
+//                                  printf("TP String2 = %s ", $6);
+//                                  tp->setFlagString($6);
+                              } TpRange {
+//                                    tuningParameters.push_back(tp);
+//                                  cfsPlugin->addTP(tp);
+                                  printf("parsed TP %s\n", $3); fflush(stdout);
+                              }
+
+ScenariosSpecification: SCENARIOS '=' '[' IntegerList ']'
+
+IntegerList: INT ',' { /*printf("Scenario = %d\n", $1);*/ scenarioIds.push_back($1); /*scenarioCt++;*/ } IntegerList
+           | INT { /*printf("Scenario = %d\n", $1);*/ scenarioIds.push_back($1); /*scenarioCt++;*/ }
+
+TpRange: IntRange
+       | StringRange
+
+IntRange: '[' INT ',' INT ']' {optionCt = $4 - $2 + 1; totSSSize *= optionCt; printf("IntRange(%d, %d) = %d values\n", $2, $4, optionCt); /*tp->setRange($2,$4,1);*/}
+        | '[' INT ',' INT ',' INT ']' {optionCt = ($4 - $2) / $6 + 1; totSSSize *= optionCt; printf("IntRange(%d, %d, %d) = %d values\n", $2, $4, $6, optionCt); /*tp->setRange($2,$4,$6);*/}
+
+StringRange: '[' StringList ']' {totSSSize *= optionCt; printf("%d values\n", optionCt);/*tp->setRange(1,optionCt,1);*/}
+
+StringList: STRING ',' {printf("StringList: %s ", $1); /* tp->addValueString($1);*/ optionCt++;} StringList
+          | STRING { printf("StringList: %s ", $1); /*tp->addValueString($1);*/ optionCt++;}
+
+%%
+
+int parseLoadConfig(const char* filename, vector<unsigned int>& sIds) {
+    psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "Load search algorithm parser\n");
+    // open a file handle to a particular file:
+    psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "Opening file: %s\n", filename);
+    FILE *myfile = fopen(filename, "r");
+    // make sure it's valid:
+    if (!myfile) {
+      cout << "I can't open file!" << endl;
+      exit(-1);
+    }
+    // set lex to read from it instead of defaulting to STDIN:
+    yyin = myfile;
+  
+    // parse through the input until there is no more:
+    do {
+      yyparse();
+      if (feof(yyin) && !feof(myfile)) {
+        yyin = myfile;
+        //printf("Switching back to original file\n");fflush(stdout);
+      }
+    } while (!feof(myfile));
+    fclose (myfile);
+
+    sIds = scenarioIds;
+
+    printf("Search space size = %u\n", totSSSize);
+    return totSSSize;
+}
+
+void yyerror(const char *s) {
+  cout << "Parse error on line " << line_num << "!  Message: " << s << "<" << yytext << ">" <<endl;
+  // might as well halt now:
+  abort();
+}

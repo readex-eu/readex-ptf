@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+set -e
+
+command -v libtoolize >/dev/null 2>&1 || { echo >&2 "Libtool is required for bootstrapping PTF.  Aborting."; exit 1; }
+command -v autoreconf >/dev/null 2>&1 || { echo >&2 "Autotools are required required for bootstrapping PTF.  Aborting."; exit 1; }
+
+function generate_plugin_revision {
+	echo "generating autotune/plugins/$1/REVISION..."
+	git rev-list --count HEAD autotune/plugins/$1 > autotune/plugins/$1/REVISION
+}  
+
+function generate_dummy_plugin_revision {
+	echo "generating dummy autotune/plugins/$1/REVISION..."
+	echo "UNKNOWN" > autotune/plugins/$1/REVISION
+}  
+
+function update_release_entry {
+	value=`cat $1`
+	cat RELEASE | sed "s|$2|${value}|g" > TEMP
+	cat TEMP > RELEASE
+}
+
+function update_plugin_version {
+  version=`(cat autotune/plugins/$1/VERSION_MAJOR; echo "."; cat autotune/plugins/$1/VERSION_MINOR) | tr -d '\n'`
+	cat RELEASE | sed "s|$2|${version}|g" > TEMP
+	cat TEMP > RELEASE
+	update_release_entry autotune/plugins/$1/REVISION $3
+}
+
+git_available=yes
+command -v git >/dev/null 2>&1 || { echo >&2 "Git command is not available: revision information will not be generated."; git_available=no; }
+if [[ x"${git_available}" = xyes ]] &&  [[ -d ".git/" ]]; then
+	echo "Both git command and .git/ directory available."
+	echo "Generating plugin REVISION files..."
+	generate_plugin_revision compilerflags
+	generate_plugin_revision dvfs
+	generate_plugin_revision masterworker
+	generate_plugin_revision mpiparameters
+	generate_plugin_revision pipeline
+	echo "Generating REVISION file..."
+	git rev-list --count HEAD > REVISION
+else
+	echo "Git command or .git/ directory not available."
+	echo "Generating dummy plugin REVISION files with content \"UNKNOWN\"..."
+	generate_dummy_plugin_revision compilerflags
+	generate_dummy_plugin_revision dvfs
+	generate_dummy_plugin_revision masterworker
+	generate_dummy_plugin_revision mpiparameters
+	generate_dummy_plugin_revision pipeline
+	echo "Generating dummy REVISION file with content \"UNKNOWN\"..."
+	echo "UNKNOWN" > REVISION
+fi
+
+echo "Generating RELEASE file..."
+cp -a RELEASE.in RELEASE
+update_release_entry VERSION "@VERSION@" 
+update_release_entry REVISION "@REVISION@" 
+update_release_entry PERISCOPE_VERSION "@PERISCOPE_VERSION@" 
+update_release_entry PATHWAY_VERSION "@PATHWAY_VERSION@" 
+update_plugin_version compilerflags "@COMPILERFLAGS_VERSION@" "@COMPILERFLAGS_REVISION@"
+update_plugin_version dvfs "@DVFS_VERSION@" "@DVFS_REVISION@"
+update_plugin_version masterworker "@MASTERWORKER_VERSION@" "@MASTERWORKER_REVISION@"
+update_plugin_version mpiparameters "@MPIPARAMETERS_VERSION@" "@MPIPARAMETERS_REVISION@"
+update_plugin_version pipeline "@PIPELINE_VERSION@" "@PIPELINE_REVISION@"
+
+echo "Generating build system..."
+libtoolize --force
+autoreconf --install --verbose --force

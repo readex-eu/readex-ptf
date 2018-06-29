@@ -1,0 +1,36 @@
+#!/bin/bash
+#@ wall_clock_limit = 00:10:00
+#@ job_name = BT-MZ
+#@ job_type = MPICH
+##@ job_type = parallel
+#@ class = test
+#@ output = job.out
+#@ error = job.out
+#@ node = 1
+#@ total_tasks = 4
+#@ node_usage = not_shared
+## notification=never
+#@ queue
+. /etc/profile
+date
+
+ulimit -c unlimited
+
+module unload mpi.ibm
+module load mpi.intel
+
+
+export SCOREP_FILTERING_FILE=../config/scorep.filt
+export SCOREP_TIMER="clock_gettime"
+
+
+date
+#mpiexec -n 4 bt-mz.C.4
+
+# Tuning runs
+#psc_frontend --apprun=bt-mz.C.4 --mpinumprocs=4 --ompnumthreads=1 --phase=PhaseRegion --info=2 --tune=compilerflags  --selective-debug=AutotuneAll
+psc_frontend --apprun=bt-mz.C.4 --mpinumprocs=4 --ompnumthreads=1 --phase=PhaseRegion --info=2 --tune=mpiparameters  --selective-debug=AutotuneAll
+
+# MPI analysis run
+#psc_frontend --apprun=bt-mz.C.4 --mpinumprocs=4 --phase=PhaseRegion --ompnumthreads=1 --info=2  --strategy=MPI --pedantic  
+date

@@ -1,0 +1,57 @@
+INTRODUCTION
+
+Please refer to INSTALL or issue './configure --help' for general instructions.
+
+On a typical GNU/Linux distribution, the common sequence of commands './configure && make && sudo make install' are likely enough to get a working Periscope installation.
+
+Having a separate build directory is preferred.  For that, create a build/ directory and call configure and make targets:
+
+mkdir build
+cd build/
+<path-to-the-source-code-directory>/configure <configure options>
+make -j <threads-used-to-compile>
+sudo make install
+
+This will install the tool into the default location of your system, typically /usr/local/ .  If you would like to install it into a directory owned by your user, use the --prefix flag to specify it.
+
+
+CONFIGURATION OF KNOWN SYSTEMS
+
+SuperMUC:
+
+The following modules have been tested to work with the current version of the framework:
+
+module load boost/1.47_gcc     
+module load mpi.intel/5.0      
+module load gcc/4.7            
+module load fortran/intel/14.0 
+module load ace/6.0            
+module load autotools/Dec13    
+module load ccomp/intel/14.0   
+module load papi/5.1
+
+Note that GCC needs to be 4.4 or later and Boost needs to be 1.47 or later.
+
+Each module defines the locations of the libraries and headers in environment variables.  Unfortunately, the naming is not consistent across modules so it is recommended to verify what is actually defined. Once the modules are loaded, bootstrap, configure and build as follows:
+
+First, move to the source code directory and bootstrap the build system:
+cd <path-to-the-source-code-directory>
+./bootstrap
+
+Afterwards, create an empty directory for building, and configure the tool in that directory:
+mkdir <build-directory>
+cd <build-directory>
+<path-to-the-source-code-directory>/configure --with-ace-include=$ACE_BASE --with-ace-lib=$ACE_LIBDIR --with-boost-include=$BOOST_BASE/include --with-boost-lib=$BOOST_LIBDIR --prefix=$HOME/install/periscope 
+
+Then proceed to build and install the tool:
+make -j 16 install
+
+Where the location of '--prefix=' can be adjusted accordingly.
+
+To run Periscope, update your PATH environment variable with the bin/ folder based on the --prefix value used in the configure step:
+
+export PATH=$HOME/install/periscope/bin:$PATH
+
+Finally, update your $HOME/.bashrc file to load the required modules and set up the PATH environment variable for future jobs and logins.
+
+

@@ -1,0 +1,291 @@
+\documentclass[11pt,a4paper, oneside]{book} %twoside,
+
+\usepackage{hyperref}
+\usepackage{color}
+%\usepackage{amssymb}
+%Used for tildes urls
+\usepackage{url}
+%Used for longtables
+\usepackage{longtable}
+\usepackage{graphicx}
+
+
+%Used for having noidentation for paragraphs
+%and vertical spacing between them
+\usepackage{parskip}
+
+\usepackage{listings}
+	
+\definecolor{gray}{rgb}{0.9,0.9,0.9}
+\definecolor{darkgreen}{rgb}{0.0,0.6,0.0}
+\definecolor{codegreen}{RGB}{0,116,0}
+\definecolor{codebrown}{RGB}{100,56,32}
+\definecolor{codebackgroundcolor}{rgb}{0.933,0.925,0.882}
+\definecolor{xmlelement}{RGB}{187,68,165}
+\definecolor{xmlattr}{RGB}{0,0,0} %{167,125,58}
+\definecolor{xmlval}{RGB}{207,49,37}
+\lstset{
+	frame=tb,
+    basicstyle=\scriptsize \ttfamily,
+    numberstyle=\footnotesize,
+    showstringspaces=false,
+    captionpos=b,
+    breaklines=true,
+    language=c++,
+    tabsize=2,
+    xleftmargin=2em, framexleftmargin=2em, framextopmargin=0.5em, framexbottommargin=0.5em,  aboveskip=1.5em, belowskip=0.1em,  rulesepcolor=\color{gray}, abovecaptionskip=.5\baselineskip, belowcaptionskip=.1\baselineskip, backgroundcolor=\color{codebackgroundcolor}, escapechar=^
+    }
+   % \lstset{frame=tb, tabsize=2, language=C++, keywordstyle=\color{codepurple}, stringstyle=\color{codered}, commentstyle=\color{codegreen}, directivestyle=\color{codebrown}, morecomment=[l][\color{codegreen}]{\#},basicstyle=\ttfamily, numberstyle=\footnotesize, captionpos=b, xleftmargin=2em, framexleftmargin=2em, framextopmargin=0.5em, framexbottommargin=0.5em,  aboveskip=1.5em, belowskip=0.1em,  rulesepcolor=\color{gray}, float=htb, escapechar=^, numberblanklines=false, lineskip={5pt}, abovecaptionskip=.5\baselineskip, belowcaptionskip=.1\baselineskip, backgroundcolor=\color{codebackgroundcolor}}
+
+
+	
+\newcommand{\draft}[1]{\textcolor{NavyBlue}{#1}}
+\newcommand{\hint}[1]{\textcolor{OliveGreen}{[{\it#1}]}}
+\newcommand{\fishy}[1]{\textcolor{red}{#1}}
+\newcommand{\comment}[1]{\marginpar{\scriptsize{\textcolor{red}{#1}}}}
+\newenvironment{code}%
+{
+\addtolength{\leftskip}{0.5cm}}%
+{
+
+}
+
+\begin{document}
+
+\title{\includegraphics[width=4cm]{../images/Ptf_LogoBlau}\\ \vspace{1cm}
+\textsf{\bf \huge PTF Parallel Patterns Plugin\\ User's Guide}\\
+       \normalsize PTF Version: 1.1\\
+       Parallel Patterns Plugin Version: 1.1}
+\author{Research Group Scientific Computing, University of Vienna}
+\date{13.04.2015}
+
+
+\maketitle
+\tableofcontents
+
+\chapter{Introduction}
+
+%With the increasing architectural diversity of many-core architectures the challenges of parallel
+%programming and code portability rise. Some of the promising approaches use high-level
+%abstractions that exploit the concept of parallel programming patterns.
+
+The parallel pattern plugin addresses automatic performance tuning of high-level pipeline patterns for
+accelerated parallel systems. The plugin builds on a component-based task-parallel programming
+framework that has been developed within the European project PEPPHER\footnote{ S. Benkner,
+S. Pllana, J. L. Tr\"{a}ff, P. Tsigas, U. Dolinsky, C. Augonnet, B. Bachmayer, C. Kessler, D. Moloney
+and V. Osipov, "PEPPHER: Efficient and Productive Usage of Hybrid Computing Systems", IEEE Micro,
+vol. 31, no. 5, p. 28–41, 2011.}, which addressed programmability and performance portability for
+single-node heterogeneous manycore systems.
+
+Within the PEPPHER framework tasks correspond to multi-architectural
+components that encapsulate different implementation variants of performance-critical application
+functionality. Such component implementation variants may be optimized for different execution units of
+a heterogeneous target architecture (e.g., CPU core, GPU, Xeon PHI or similar). High-level coordination
+primitives as well as patterns are provided to construct applications from such components.
+A sophisticated runtime system is utilized to select and dynamically schedule component implementation
+variants for efficient parallel execution on heterogeneous many-core architectures.
+
+%The tuning plugin for High-Level Pipeline Patterns addresses auto-tuning of high-level pipeline
+%patterns for heterogeneous systems.
+
+The parallel pipeline patterns, as supported by the PEPPHER framework, are based on while-loops with source-
+code annotations (Listing \ref{lst:pipeline}). Pipeline stages usually correspond to calls to multi-architectural
+components, for which multiple implementation variants may be provided. Such component implementation
+variants may be optimized for different execution units of a heterogeneous target architecture (e.g.: systems
+equipped with GPUs).
+\newline
+\newline
+\newline
+
+
+\lstset{label=lst:pipeline, caption="Example of a high-level pipeline pattern code for image processing. Pipeline consists of four stages. For the compute intensive DetectFace stage different component implementation variants for GPU and CPU exist and the PTF determines the best replication factor such that all execution units of the target architecture are exploited and execution time is minimized."}
+
+\begin{lstlisting}
+...
+^\color{codebrown}{\#pragma pph pipeline with buffer (UNORDERED, N*2)}^
+while ( inputstream >> file ) {
+	ReadImage(file, image);
+	ResizeAndColorConvert (image , outimage);
+	^\color{codebrown}{\#pragma pph stage replication(rfactor)}^
+	DetectFace(outimage);
+	^\color{codebrown}{\#pragma pph stage with buffer (PRIORITY, N*2)}^
+	WriteFaceDetectedImage(file, outimage);
+}
+...
+\end{lstlisting}
+
+
+Such high-level pipeline code is transformed by a source-to-source compiler into a C++ code that utilizes a
+coordination layer for managing parallel execution of pipelines. The coordination layer  (also referred to as
+the pipeline coordination layer or VPattern Library) manages
+all aspects of pipelined execution on a heterogeneous many-core architecture, including the automatic
+management of buffers for data passed between pipeline stages, the replication of individual stages, and
+the coordination of task-parallel execution of pipeline stages. Internally, the pipeline coordination library
+utilizes the StarPU\footnote{C. Augonnet, S. Thibault, R. Namyst and P.-A. Wacrenier, "StarPU: A Unified
+Platform for Task Scheduling on Heterogeneous Multicore Architectures," Concurrency and Computation:
+Practice and Experience, vol. 23, no. Special Issue: EuroPar, pp. 187-198, 2009.} heterogeneous runtime
+system, which is responsible for dynamically selecting suitable component implementation variants for
+pipeline stages and for scheduling their execution to the different execution units of a heterogeneous
+many-core system in a performance- and resource-efficient way. StarPU also manages data transfers
+between execution units, ensures memory coherency, and provides support for different scheduling
+strategies, with the goal of utilizing all execution units of the target architecture.
+
+The pipeline coordination layer exposes a set of tuning parameters, thus allowing external tuners like
+Periscope Tuning Framework to automatically tune the performance of applications using this pattern.
+
+The plugin supports two modes of execution. In the first mode, overall pipeline execution time
+of the application using different sets of tuning parameters is being measured and tracked. The search
+through all possible configurations is performed exhaustively. In the second mode, the focused
+tuning of the pipelines is enabled. In this mode, the plugin additionally uses pipeline-specific performance
+analysis to detect performance-limiting stages in the pre-analysis phase and constrains the search space accordingly.
+The plugin produces a tuning advice, pointing out the configuration with the shortest execution time, as well as the list
+of all executed scenarios.
+
+\chapter{Quick Start}
+Tuning plugin for high-level pipeline patterns is being installed along with the Periscope Tuning Framework. Please refer to the \textit{PTF Installation Guide} for a complete description of the installation process.
+
+\section{Quick installation}
+In order to use the plugin, PTF should be configured with --enable-vpattern and following software packages need to be available on the system:
+  \begin{itemize}
+    \item VPattern Library $>=0.9$
+  \end{itemize}
+
+\section{Running Pipeline Pattern Plugin}
+The plugin for high-level pipeline patterns runs as a plugin within the Periscope Tuning Framework. It can be started using \texttt{psc\_frontend} (see also \textit{PTF User's Guide}) by setting the \texttt{tune} flag to \texttt{pipeline}.
+\begin{center}
+\texttt{--tune=pipeline}
+\end{center}
+
+For an arbitrary example, one would call from within the folder containing the executable:
+\vspace*{0.5cm}
+
+\texttt{psc\_frontend --apprun=./<executable\_filename> --sir=./<sir\_filename> --mpinumprocs=1 --tune=pipeline --force-localhost }
+
+\vspace*{0.5cm}
+This will start the measurements and the plugin tuning strategy for the specified application using one process.
+
+Additionally, the \texttt{--vpattern-focused} command-line switch may be used to enable focused tuning that tries to detect performance-limiting pipeline stages and to constrain the search space accordingly.
+
+\section{Execution results}
+Upon successful completion of the tuning, the pipeline plugin displays at the standard output the list of all (\textit{scenarios}) that were used in the search along with the corresponding execution times (\textit{severity}). It also outputs the scenario with the best execution time. Additionally, the plugin outputs all tuning parameters and corresponding values for each executed scenario.
+
+This is an example output of the above call to \texttt{psc\_frontend}:
+
+\begin{code}
+\texttt{AutoTune Results:\\
+------------------------\\
+Search Steps: 6 \\
+Found Optimum Scenario: 4\\
+\phantom{}\hspace{1em}STAGEREPLICATIONFACTOR\_1\_55: 3\\
+\phantom{}\hspace{1em}...\\
+\phantom{}\hspace{1em}NCPUS: 2\\
+\phantom{}\hspace{1em}NGPUS: 1\\
+\phantom{}\hspace{1em}SCHEDULING\_POLICY: 1\\
+\\
+All Results:\\
+Scenario	|  Severity\\
+0		|  10.545700\\
+1		|  10.165600\\
+2		|  8.308380\\
+3		|  6.061190\\
+4		|  5.958680\\
+5		|  10.591900\\
+------------------------}
+\end{code}
+
+The optimum scenario is the tuning advice of the plugin and it consists of the concrete values for tuning parameters that provided the best execution time for executed application.
+
+\chapter{Autotuning Approach}\label{sec:mappingPTF}
+The tuning plugin for high-level pipeline patterns follows the general PTF plugin approach (see also \textit{PTF User's Guide}).
+
+\section{Tuning parameters}
+
+The plugin supports three types of tuning parameters that address tuning of pipeline-, runtime-, and machine-specific aspects of the pipeline execution.
+
+The pipeline-specific tuning parameters target pipeline structural tuning parameters such as stage replication factors, and sizes of input and output buffers. Each stage in the pipeline may have two or more such parameters. Therefore, the total number of tuning parameters depends on the structure of the pipeline.
+
+Machine-specific parameters NCPUS and NGPUS are used to describe available hardware resources such as the number of available CPU cores (or available hardware threads) and number of usable graphic cards.
+
+Finally, the runtime-specific parameters address runtime specific parameters such as the  scheduling policy used by the runtime system.
+
+The list of all possible tuning parameters is given in the following listing:
+
+  \begin{itemize}
+    \item \emph{stage replication factor} - the number of stage instances that may be
+executed in parallel
+    \item \emph{sizes of buffers} - size of I/O buffers that hold data packets passed between pipeline stages
+    \item \emph{number of CPU cores} -  also the number available CPU hardware threads to be used for execution
+    \item \emph{number of GPUs} - number of available graphic cards to be used for execution
+    \item \emph{scheduling strategy} - a scheduling policy used by StarPU runtime for scheduling component calls to available execution units
+of the target system
+  \end{itemize}
+
+%All tuning parameters define together the tuning space.
+
+Each pipeline-specific parameter may be provided explicitly by the user in the original code or directly by altering the generated SIR file. The pipeline-specific tuning parameters may be expressed in the form of concrete values or tuning ranges. Listing \ref{lst:userhints} demonstrates user-provided range for the stage replication factor with \emph{min=2}, \emph{max=10} and \emph{step=2}, and output buffer size set to \emph{32}.
+In the high-level code, this is expressed in the following way:
+
+\lstset{caption="User-provided ranges in PEPPHER high-level codes. The stage replication is hinted to have values between 2 and 10\, incremented by 2. The buffer size is set to a concrete value of 32.", label={lst:userhints}}
+\begin{lstlisting}
+  ^\color{codebrown}{\#pragma pph stage replicate (}^^\color{xmlval}{2:16:2}^^\color{codebrown}{) buffer (}^^\color{xmlval}{32}^^\color{codebrown}{, ...)}^
+  func1(...)
+\end{lstlisting}
+
+In the SIR file, end-users may alter corresponding \textit{min}, \textit{max} and \textit{step} values for each tuning parameter:
+
+\lstset{caption="In order to influence the tuning process\, the SIR file may be altered manually by changing the corresponding \textit{min}\, \textit{max} and \textit{step} values for each tuning parameter."}
+\begin{lstlisting}
+...
+^\color{xmlelement}{<plugin}^ ^\color{xmlattr}{pluginId}^=^\color{xmlval}{"Pipeline"}^^\color{xmlelement}{>}^
+	...
+	^\color{xmlelement}{<selector}^ ^\color{xmlattr}{tuningActionType}^=^\color{xmlval}{"VAR"}^
+           ^\color{xmlattr}{tuningActionName}^=^\color{xmlval}{"STAGEREPLICATIONFACTOR\_1\_55"}^
+           ^\color{xmlattr}{min}^=^\color{xmlval}{"1"}^ ^\color{xmlattr}{max}^=^\color{xmlval}{"8"}^ ^\color{xmlattr}{step}^=^\color{xmlval}{"1"}^^\color{xmlelement}{/>}^
+	...
+	^\color{xmlelement}{<selector}^ ^\color{xmlattr}{tuningActionType}^=^\color{xmlval}{"VAR"}^
+           ^\color{xmlattr}{tuningActionName}^=^\color{xmlval}{"NCPUS"}^
+           ^\color{xmlattr}{min}^=^\color{xmlval}{"1"}^ ^\color{xmlattr}{max}^=^\color{xmlval}{"8"}^ ^\color{xmlattr}{step}^=^\color{xmlval}{"1"}^^\color{xmlelement}{/>}^
+	...
+^\color{xmlelement}{</plugin>}^
+...
+\end{lstlisting}
+
+In order to construct a variant space, the plugin processes the SIR file during the initialization phase and collects information about tuning parameters and pipeline regions. All tuning parameters together define the tuning space.
+
+\section{Search strategy}
+In order to find the best set of tuning parameters for an application, a search through the tuning space has to be performed.
+
+In the default mode, the plugin utilizes the exhaustive search strategy and evaluates all possible tuning scenarios in the tuning space. The total number of scenarios for each pipeline is a cross product of all tuning parameters.
+
+In the focused tuning mode, the plugin uses pre-analysis to detect performance-limiting stages, and constrain the search space. The total number of scenarios will be equal to the cross product of the number of values used for the limiter stage replication factors tuning parameter, limiter stage buffer size tuning parameter, runtime scheduling policy tuning parameter, hardware description tuning parameters (NCPUS and NGPUS) and user-provided tuning parameters (if any).
+
+
+\section{Tuning scenario}
+Based on the chosen strategy, consecutive \textit{tuning scenarios} are then being generated at run time and the performance of the application is being evaluated for each of these scenarios.
+
+In the plugin for high-level pipeline patterns one scenario represents one specific combination containing concrete values of all tuning points.
+
+\section{Tuning action}
+Applying one specific scenario to the application implies passing concrete values of tuning parameters to the pipeline coordination layer.
+
+\chapter{How To Use the Tuning Advice}
+Upon successful completion, the plugin outputs a list of all tested scenarios as well as the \texttt{id} of the best scenario and its configuration.
+
+Given the plugin output:
+
+\begin{code}
+\texttt{AutoTune Results:\\
+------------------------\\
+Search Steps: 6 \\
+Optimum Scenario: 4\\
+\phantom{}\hspace{1em}STAGEREPLICATIONFACTOR\_1\_55: 3\\
+\phantom{}\hspace{1em}NCPUS: 2\\
+\phantom{}\hspace{1em}NGPUS: 1\\
+\phantom{}\hspace{1em}SCHEDULING\_POLICY: 1\\
+\\
+}
+\end{code}
+
+"Optimum scenario" is the tuning advice of the plugin and it consists of the concrete values for tuning parameters that provided the best execution time for executed application. These values should be inserted into the original application.
+
+\end{document} 

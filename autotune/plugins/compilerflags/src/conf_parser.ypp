@@ -1,0 +1,209 @@
+%{
+#include <cstdio>
+#include <vector>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
+#include <iostream>
+#include <sstream>
+#include "CompilerFlagsPlugin.h"
+
+//#include "lex.h"
+
+using namespace std;
+
+//#include "y.tab.h"  // to get the token types that we return
+
+// stuff from flex that bison needs to know about:
+extern "C" int yylex();
+extern "C" int yyparse();
+extern "C" FILE *yyin;
+extern int line_num;
+extern char *yytext;                        /* current token */
+extern "C" void yypush_buffer_state(int *);
+extern "C" int* yy_create_buffer(FILE*, int);
+
+
+void yyerror(const char *s);
+
+stringstream strs;
+CFSTuningParameter *tp;
+int optionCt;
+CompilerFlagsPlugin *cfsPlugin;
+
+
+%}
+
+//%defines "conf_parser.hpp"
+
+
+%union {
+  int ival;
+  char *sval;
+}
+
+%start Specification
+
+%token MAKEPATH
+%token MAKEVAR
+%token RESULTSFILE
+%token REQFLAGS
+%token MAKEARGS
+%token APPLSRC
+%token MAKESELECT
+%token SEARCHALG
+%token ROUTINE
+%token FILELIST
+%token INDIVIDUALKEEP
+%token SAMPLECOUNT
+%token GDE3POPSIZE
+%token MINUTESTOSEARCH
+%token MACHINELEARNING
+%token REMOTEMAKE
+%token IDENTITYPATH
+%token REMOTEMAKEMACHINENAME
+
+%token TP
+%token OPENCLTUNING
+%token COMPILER
+%token PATH
+%token <ival> INT
+%token <sval> STRING
+
+%%
+Specification: StmtList
+
+StmtList: Stmt StmtList
+        | Stmt
+
+Stmt: MakePathSpecification ';'
+    | MakeFlagsVarSpecification ';'
+    | RequiredFlagsSpecification ';'
+    | MakeArgsSpecification ';'
+    | ApplSrcPathSpecification ';'
+    | SelectiveSpecification ';'
+    | FileListSpecification ';'
+    | SearchAlgSpecification ';'
+    | IndividualKeepSpecification ';'
+    | SampleCountSpecification ';'
+    | GDE3PopulationSizeSpecification ';'
+    | MinutesToSearchSpecification ';'
+    | ResultsFileSpecification ';'
+    | MachineLearningSpecification ';'
+    | OpenCLSpecification ';'
+    | RoutineSpecification ';'
+    | TuningParameterSpecification ';'
+    | CompilerSpecification ';'
+    | RemoteMakeSpecification ';'
+    | IdentityPathSpecification ';'
+    | RemoteMakeMachineNameSpecification ';'
+
+RemoteMakeSpecification: REMOTEMAKE '=' STRING {cfsPlugin->setRemoteMake($3);}
+
+IdentityPathSpecification: IDENTITYPATH '=' STRING {cfsPlugin->setIdentityPath($3);}
+
+RemoteMakeMachineNameSpecification: REMOTEMAKEMACHINENAME '=' STRING {cfsPlugin->setRemoteMakeMachineName($3);}
+
+MakePathSpecification: MAKEPATH '=' STRING {cfsPlugin->setMakefilePath($3);}
+
+MakeFlagsVarSpecification: MAKEVAR '=' STRING {cfsPlugin->setMakefileFlagsVariable($3);}
+
+RequiredFlagsSpecification: REQFLAGS '=' STRING {cfsPlugin->setRequiredFlags($3);}
+
+MakeArgsSpecification: MAKEARGS '=' STRING {cfsPlugin->setMakefileArguments($3);}
+
+ApplSrcPathSpecification: APPLSRC '=' STRING {cfsPlugin->setMakefileSrc($3);}
+
+SelectiveSpecification: MAKESELECT '=' STRING {cfsPlugin->setMakefileSelective($3);}
+
+FileListSpecification: FILELIST '=' STRING {cfsPlugin->setFileList($3);}
+
+SearchAlgSpecification: SEARCHALG '=' STRING {cfsPlugin->setSearchAlgorithm($3);}
+
+IndividualKeepSpecification: INDIVIDUALKEEP '=' INT {cfsPlugin->setIndividualKeep($3);}
+
+SampleCountSpecification: SAMPLECOUNT '=' INT {cfsPlugin->setSampleCount($3);}
+
+GDE3PopulationSizeSpecification: GDE3POPSIZE '=' INT {cfsPlugin->setGDE3PopulationSize($3);}
+
+MinutesToSearchSpecification: MINUTESTOSEARCH '=' INT {cfsPlugin->setMinutesToSearch($3);}
+
+ResultsFileSpecification: RESULTSFILE '=' STRING {cfsPlugin->setResultsFile($3);}
+
+MachineLearningSpecification: MACHINELEARNING '=' STRING {cfsPlugin->setMachineLearning($3);}
+
+OpenCLSpecification: OPENCLTUNING {cfsPlugin->setOpenCL();}
+
+RoutineSpecification: ROUTINE '=' STRING {cfsPlugin->addRoutine($3);}
+
+TuningParameterSpecification: TP {tp = new CFSTuningParameter(); optionCt = 0;} STRING {tp->setName($3);} '=' STRING {tp->setFlagString($6);} TpRange {
+                                tp->setPluginType(CFS);
+                                tp->setRuntimeActionType(TUNING_ACTION_NONE);
+                                cfsPlugin->addTP(tp);
+                                //printf("parsed TP %s\n", $3); fflush(stdout);
+                              }
+
+CompilerSpecification: COMPILER '=' STRING
+                       {
+                         // char  *filename;
+
+                         // filename= (char*) calloc(1,2000);
+
+                         // if( getenv("PERISCOPE_ROOT") )
+                         //   sprintf(filename, "%s/templates/cfs_%s.cfg", getenv("PERISCOPE_ROOT"), $3);
+                         // else
+                         //   sprintf(filename, "cfs_%s.cfg", $3);
+
+                         // psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "Opening file: %s\n", filename);
+                         // FILE *myfile = fopen(filename, "r");
+                         // if (!myfile) {
+                         //   cout << "I can't open file!" << endl;
+                         // }
+                         // set lex to read from it instead of defaulting to STDIN:
+                         // yypush_buffer_state( yy_create_buffer ( myfile, 2000 ));
+                         // yyin = myfile;
+                       };
+
+TpRange: IntRange
+       | StringRange
+
+IntRange: '[' INT ',' INT ']' {tp->setRange($2,$4,1);}
+        | '[' INT ',' INT ',' INT ']' {tp->setRange($2,$4,$6);}
+
+StringRange: '[' StringList ']' {tp->setRange(1,optionCt,1);}
+
+StringList: STRING ',' { tp->addValueString($1);optionCt++;} StringList
+          | STRING {tp->addValueString($1);optionCt++;}
+
+%%
+
+//vector<MPIParameterTP> getTuningParameters(const char *filename, mpiImplementationName &MPItype) {
+void parseConfig(const char *filename, CompilerFlagsPlugin *plugin) {
+  cfsPlugin = plugin;
+  // open a file handle to a particular file:
+  psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "Opening file: %s\n", filename);
+  FILE *myfile = fopen(filename, "r");
+  // make sure it's valid:
+  if (!myfile) {
+    cout << "I can't open file!" << endl;
+    exit(-1);
+  }
+  // set lex to read from it instead of defaulting to STDIN:
+  yyin = myfile;
+
+  // parse through the input until there is no more:
+  do {
+    yyparse();
+    if (feof(yyin) && !feof(myfile)) {
+      yyin = myfile;
+      //printf("Switching back to original file\n");fflush(stdout);
+    }
+  } while (!feof(myfile));
+  fclose (myfile);
+}
+
+void yyerror(const char *s) {
+  cout << "Parse error on line " << line_num << "!  Message: " << s << "<" << yytext << ">" <<endl;
+  // might as well halt now:
+  abort();
+}
