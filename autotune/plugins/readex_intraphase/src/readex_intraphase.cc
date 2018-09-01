@@ -73,6 +73,9 @@ void ReadexIntraphasePlugin::initialize(DriverContext* context, ScenarioPoolSet*
     scenario_no_atp = 0;
     this->context   = context;
     this->pool_set  = pool_set;
+    min_freq        = 1200;
+    max_freq        = 2400;
+    freq_step       = 400;
 
     psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "ReadexIntraphasePlugin: got pool and context\n");
     /*Whether or not ATP, we increase tuningStep*/
@@ -298,17 +301,23 @@ void ReadexIntraphasePlugin::startTuningStep(void) {
          * Access tuning parameters from the global configTree
          */
 
-        int default_cpu_freq(2500000);
+        int default_cpu_freq(2500);
         try {
             this->min_freq = atoi(configTree.get < std::string > ("Configuration.tuningParameter.frequency.min_freq").c_str());
             this->max_freq = atoi(configTree.get < std::string > ("Configuration.tuningParameter.frequency.max_freq").c_str());
             this->freq_step = atoi(configTree.get < std::string > ("Configuration.tuningParameter.frequency.freq_step").c_str());
             default_cpu_freq = atoi(configTree.get < std::string > ("Configuration.tuningParameter.frequency.default").c_str());
+        } catch (exception &e) {
+            psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "ReadexIntraphasePlugin: %s\n", e.what());
+        }
+
+        try {
             threadsLB = atoi(configTree.get < std::string > ("Configuration.tuningParameter.openMPThreads.lower_value").c_str());
             threadsStep = atoi(configTree.get < std::string > ("Configuration.tuningParameter.openMPThreads.step").c_str());
         } catch (exception &e) {
             psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "ReadexIntraphasePlugin: %s\n", e.what());
         }
+
 
         /* Check the datatype of each entry */
         if( isnan ( this->min_freq ) )
@@ -382,7 +391,7 @@ void ReadexIntraphasePlugin::startTuningStep(void) {
         cpuFrequency->setRuntimeActionType(TUNING_ACTION_FUNCTION_POINTER);
         tuningParameters.push_back(cpuFrequency);
 
-        int min(10), max(30), step(2), default_uncore_freq(30);
+        int min(1000), max(3000), step(1000), default_uncore_freq(3000);
         try {
             min = atoi(configTree.get < std::string > ("Configuration.tuningParameter.uncore.min_freq").c_str());
             max = atoi(configTree.get < std::string > ("Configuration.tuningParameter.uncore.max_freq").c_str());
@@ -700,11 +709,13 @@ void ReadexIntraphasePlugin::defineExperiment(int numprocs, bool& analysisRequir
     }
 
     pool_set->esp->push(scenario);
+    if( psc_get_debug_level() >= 2 ) {
+      scenario->print();
+    }
 
     psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "ReadexIntraphasePlugin: Processing significant regions\n");
     code_significant_regions = appl->get_sig_regions_list();
     std::list<Region*>::iterator code_sig_regions_it;
-    printf("code_significant_regions.size(): %d\n",code_significant_regions.size());fflush(stdout);
 
     if (code_significant_regions.size() > 0) {
         StrategyRequestGeneralInfo* analysisStrategyRequest = new StrategyRequestGeneralInfo;
@@ -1237,7 +1248,7 @@ bool ReadexIntraphasePlugin::tuningFinished(void) {
                 }
             }
 
-            cout << "rts.xml file creating .." << endl;
+            psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "ReadexIntraphasePlugin: Creating rts.xml");
             rtsTree.add_child( "RTS" , rts_s );
             #if BOOST_VERSION >=105600
                 write_xml( "rts.xml", rtsTree, locale(), xml_writer_settings<ptree::key_type>( ' ', 4 ) );
@@ -1393,14 +1404,18 @@ Advice* ReadexIntraphasePlugin::getAdvice(void) {
     psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "ReadexIntraphasePlugin: call to getAdvice()\n");
     appl->getCalltreeRoot()->insertDefaultTPValues(tuningParameters);
 
-    //Modify the upper limit of the TP range if it is less than the default value. This is to ensure that Nico's clustering doesn't break.
+    //Modify the upper limit and step of the TP range if it is less than the default value. This is to ensure that Nico's clustering doesn't break.
     for( auto &tp : tuningParameters) {
         if( tp->getRangeTo() < tp->getDefaultValue() ) {
-            tp->setRangeTo(tp->getDefaultValue());
+            if(tp->getName() == "NUMTHREADS") {
+                tp->setRangeTo(tp->getDefaultValue(),1);
+            }
+            else {
+                tp->setRangeTo(tp->getDefaultValue(),100);
+            }
         }
     }
 
-//    rtstree::printTree( appl->getCalltreeRoot() );
     generate_tuning_model();
 //    if (RegionBestConfig.empty()) {
 //        return new Advice(getName(), bestScenarios, energyForScenario, "Energy", pool_set->fsp->getScenarios());
@@ -1473,7 +1488,7 @@ IPlugin* getPluginInstance(void) {
 int getVersionMajor(void) {
     psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "ReadexIntraphasePlugin: call to getInterfaceVersionMajor()\n");
 
-    return 1;
+    return READEX_INTRAPHASE_VERSION_MAJOR;
 }
 
 /**
@@ -1487,7 +1502,7 @@ int getVersionMajor(void) {
 int getVersionMinor(void) {
     psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "ReadexIntraphasePlugin: call to getInterfaceVersionMinor()\n");
 
-    return 0;
+    return READEX_INTRAPHASE_VERSION_MINOR;
 }
 
 /**

@@ -23,7 +23,6 @@ Application* Application::singleInstance;
 Application& Application::instance() {
     if( !singleInstance ) {
         singleInstance = new Application();
-        std::cout <<  "Hint: Creating new application instance: "  <<  singleInstance  <<  std::endl;
     }
 
     return *singleInstance;
@@ -474,7 +473,7 @@ void Application::addRegion( const std::string& region_name,
     code_regions.insert( std::make_pair( region->getRegionID(), region ) );
 
     if( type == USER_REGION   &&   !phase_region ) {
-        psc_dbgmsg( 1, "Setting phase region automatically: %s\n", region->getRegionID().c_str() );
+        psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL(CallTree) , "Setting phase region automatically: %s\n", region->getRegionID().c_str() );
         set_phase_region( region );
     }
 }

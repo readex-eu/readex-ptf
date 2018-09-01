@@ -97,7 +97,7 @@ public:
                    int to,
                    int step );
 
-    void setRangeTo( int to);
+    void setRangeTo( int to, int step );
 
     void addStringValue( string value );
 

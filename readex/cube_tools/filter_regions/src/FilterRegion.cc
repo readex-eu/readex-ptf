@@ -140,8 +140,10 @@ main( int argc, char* argv[] )
                 for ( const auto& node : filter_node_names )
                 {
                      string fn_name = boost::regex_replace( node, reg, format );
-                     ofs << fn_name;
-                     ofs << "\n";
+		     if (fn_name.find("opari") == string::npos) {
+		       ofs << fn_name;
+		       ofs << "\n";
+		     }
                 }
                 ofs << "SCOREP_REGION_NAMES_END\n";
                 ofs.close();
@@ -156,7 +158,8 @@ main( int argc, char* argv[] )
                     for ( const auto& node : filter_node_names )
                     {
                         string fn_name = boost::regex_replace( node, reg_i, format_i );
-                        if ( !fn_name.empty() )
+			//dont filter opari regions
+                        if ( !fn_name.empty() && fn_name.find("opari") == string::npos)
                         {
                             ofsi << ".*:";
                             ofsi << fn_name;

@@ -32,21 +32,41 @@ command -v git >/dev/null 2>&1 || { echo >&2 "Git command is not available: revi
 if [[ x"${git_available}" = xyes ]] &&  [[ -d ".git/" ]]; then
 	echo "Both git command and .git/ directory available."
 	echo "Generating plugin REVISION files..."
+	generate_plugin_revision adaptivesequence
 	generate_plugin_revision compilerflags
 	generate_plugin_revision dvfs
+	generate_plugin_revision energy
+	generate_plugin_revision fixedsequence
 	generate_plugin_revision masterworker
+	generate_plugin_revision mpicap
 	generate_plugin_revision mpiparameters
+	generate_plugin_revision pcap
 	generate_plugin_revision pipeline
+	generate_plugin_revision readex_configuration
+	generate_plugin_revision readex_interphase
+	generate_plugin_revision readex_intraphase
+	generate_plugin_revision readex_intraphase_model
+	generate_plugin_revision romio
 	echo "Generating REVISION file..."
 	git rev-list --count HEAD > REVISION
 else
 	echo "Git command or .git/ directory not available."
 	echo "Generating dummy plugin REVISION files with content \"UNKNOWN\"..."
+	generate_dummy_plugin_revision adaptivesequence
 	generate_dummy_plugin_revision compilerflags
 	generate_dummy_plugin_revision dvfs
+	generate_dummy_plugin_revision energy
+	generate_dummy_plugin_revision fixedsequence
 	generate_dummy_plugin_revision masterworker
+	generate_dummy_plugin_revision mpicap
 	generate_dummy_plugin_revision mpiparameters
+	generate_dummy_plugin_revision pcap
 	generate_dummy_plugin_revision pipeline
+	generate_dummy_plugin_revision readex_configuration
+	generate_dummy_plugin_revision readex_interphase
+	generate_dummy_plugin_revision readex_intraphase
+	generate_dummy_plugin_revision readex_intraphase_model
+	generate_dummy_plugin_revision romio
 	echo "Generating dummy REVISION file with content \"UNKNOWN\"..."
 	echo "UNKNOWN" > REVISION
 fi
@@ -57,11 +77,21 @@ update_release_entry VERSION "@VERSION@"
 update_release_entry REVISION "@REVISION@" 
 update_release_entry PERISCOPE_VERSION "@PERISCOPE_VERSION@" 
 update_release_entry PATHWAY_VERSION "@PATHWAY_VERSION@" 
+update_plugin_version adaptivesequence "@ADAPTIVE_SEQUENCE_VERSION@" "@ADAPTIVE_SEQUENCE_REVISION@"
 update_plugin_version compilerflags "@COMPILERFLAGS_VERSION@" "@COMPILERFLAGS_REVISION@"
 update_plugin_version dvfs "@DVFS_VERSION@" "@DVFS_REVISION@"
+update_plugin_version energy "@ENERGY_VERSION@" "@ENERGY_REVISION@"
+update_plugin_version fixedsequence "@FIXED_SEQUENCE_VERSION@" "@FIXED_SEQUENCE_REVISION@"
 update_plugin_version masterworker "@MASTERWORKER_VERSION@" "@MASTERWORKER_REVISION@"
+update_plugin_version mpicap "@MPICAP_VERSION@" "@MPICAP_REVISION@"
 update_plugin_version mpiparameters "@MPIPARAMETERS_VERSION@" "@MPIPARAMETERS_REVISION@"
+update_plugin_version pcap "@PCAP_VERSION@" "@PCAP_REVISION@"
 update_plugin_version pipeline "@PIPELINE_VERSION@" "@PIPELINE_REVISION@"
+update_plugin_version readex_configuration "@READEX_CONFIGURATION_VERSION@" "@READEX_CONFIGURATION_REVISION@"
+update_plugin_version readex_interphase "@READEX_INTERPHASE_VERSION@" "@READEX_INTERPHASE_REVISION@"
+update_plugin_version readex_intraphase "@READEX_INTRAPHASE_VERSION@" "@READEX_INTRAPHASE_REVISION@"
+update_plugin_version readex_intraphase_model "@READEX_INTRAPHASE_MODEL_VERSION@" "@READEX_INTRAPHASE_MODEL_REVISION@"
+update_plugin_version romio "@ROMIO_VERSION@" "@ROMIO_REVISION@"
 
 echo "Generating build system..."
 libtoolize --force

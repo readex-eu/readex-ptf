@@ -51,9 +51,6 @@ int ACCL_MRINodeagent_Handler::on_start( start_req_t& req, start_reply_t& reply 
     /// Set the agent state to ready.
     agent_->set_ready();
 
-    psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotuneAgentStrategy ),
-                "Serialized strategy request received on AA side: strategy request size %d\n",
-                req.serialized_strategy_request_container.size );
 
     if( req.serialized_strategy_request_container.size != 0 ) {
         namespace io = boost::iostreams;

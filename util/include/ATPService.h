@@ -72,7 +72,7 @@ public:
     std::vector<std::string> getParamNamesbyDomain(std::string);
 
 
-    inline const int port ( ) const noexcept{
+    inline int port ( ) const noexcept{
         return port_;
     };
 
@@ -88,23 +88,23 @@ public:
         return tag_;
     };
 
-    inline const int sock( ) const noexcept{
+    inline int sock( ) const noexcept{
         return sock_;
     };
 
-    inline const int ID ( ) const noexcept{
+    inline int ID ( ) const noexcept{
         return atpServerID;
     };
 
-    inline const int32_t elements_per_combination ( ) const noexcept{
+    inline int32_t elements_per_combination ( ) const noexcept{
         return elements_per_combination_;
     };
 
-    inline const int hasConstraint ( ) const noexcept{
+    inline int hasConstraint ( ) const noexcept{
         return constraint_;
     };
 
-    inline const  std::unordered_set <std::string>& domains( ) const noexcept{
+    inline const std::unordered_set <std::string>& domains( ) const noexcept{
         return domains_;
     };
 

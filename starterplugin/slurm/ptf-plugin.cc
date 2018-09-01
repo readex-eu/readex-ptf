@@ -45,9 +45,9 @@ std::string StarterPlugin_appStartCmd(char* user_specified_environment)
         cpu_bind << cpu_bind_env;
     }
 
-    appstart_cmd_stream  <<  appstart_env_vars.rdbuf()  <<  " srun -x `echo -n \"$(hostname)\"` "
+    appstart_cmd_stream  <<  appstart_env_vars.rdbuf()  <<  " srun -x `echo -n \"$(cut -d'.' -f1 <<< $(hostname))\"` "
                          <<  cpu_bind.rdbuf()  <<  " -N "  <<  numNodes  <<  " -n "  <<  processes  <<  " "
-                         <<  opts.app_run_string;
+                         <<  opts.app_run_string;                         
 
     return appstart_cmd_stream.str();
 }

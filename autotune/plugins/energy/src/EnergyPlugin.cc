@@ -330,7 +330,8 @@ IPlugin* getPluginInstance() {
  */
 int getVersionMajor() {
     psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), "ENERGY: call to getInterfaceVersionMajor()\n" );
-    return 1;
+
+    return ENERGY_VERSION_MAJOR;
 }
 
 
@@ -341,7 +342,8 @@ int getVersionMajor() {
  */
 int getVersionMinor() {
     psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), "ENERGY: call to getInterfaceVersionMinor()\n" );
-    return 0;
+
+    return ENERGY_VERSION_MINOR;
 }
 
 

@@ -29,16 +29,16 @@
 <!--  This section specifies all the tuning parameter such as frequency, uncore frequency, no of threads and so on  -->
     <tuningParameter>
         <frequency>
-            <min_freq>1200000</min_freq>
-            <max_freq>2400000</max_freq>
-            <freq_step>500000</freq_step>
-            <default>2500000</default>
+            <min_freq>1200</min_freq>
+            <max_freq>2400</max_freq>
+            <freq_step>500</freq_step>
+            <default>2500</default>
         </frequency>
         <uncore>
-            <min_freq>10</min_freq>
-            <max_freq>30</max_freq>
-            <freq_step>10</freq_step>
-            <default>30</default>
+            <min_freq>1000</min_freq>
+            <max_freq>3000</max_freq>
+            <freq_step>1000</freq_step>
+            <default>3000</default>
         </uncore>
         <openMPThreads>
             <lower_value>1</lower_value>
@@ -62,7 +62,7 @@
         <!--<CostPerJoule>0.00000008</CostPerJoule>--> <!-- Euro -->
         <!--<CostPerCoreHour>1.0</CostPerCoreHour>-->  <!-- Euro -->
     </objectives>
-<!--  metrics section specifies energy metrics to be measured across nodes. In SearchAlgorithm section one has to specify at least one search algorithm for readex_tuning plugin  -->
+<!--  metrics section specifies energy metrics to be measured across nodes. In SearchAlgorithm section one has to specify at least one search algorithm for readex tuning plugins  -->
     <periscope>
         <metricPlugin>
             <name>hdeem_sync_plugin</name>
@@ -72,6 +72,7 @@
             <node_energy>hdeem/BLADE/E</node_energy>
             <cpu0_energy>hdeem/CPU0/E</cpu0_energy>
             <cpu1_energy>hdeem/CPU1/E</cpu1_energy>
+            <!--<node_energy>x86_energy/BLADE/E</node_energy>-->
         </metrics>
         <metricUnits>
           <timeUnit>s</timeUnit>
@@ -95,7 +96,7 @@
             <file_path>tuning_model.json</file_path>
         </tuningModel>
     </periscope>
-<!--  This section defines which substrate plugin to be used for readex_tuning plugin  -->
+<!--  This section defines which substrate plugin to be used for READEX tuning plugins  -->
     <scorep>
         <tuningSubstrate>rrl</tuningSubstrate>
     </scorep>

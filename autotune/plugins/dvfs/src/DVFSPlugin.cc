@@ -46,16 +46,14 @@ DVFSPlugin::DVFSPlugin() :
  */
 void DVFSPlugin::initialize( DriverContext*   context,
                              ScenarioPoolSet* pool_set ) {
-    int                     major, minor;
-    string                  name, description;
-    list<Region*>           regions;
-    list<Region*>::iterator reg;
+    int    major, minor;
+    string name, description;
 
     psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), "DVFSPlugin: call to initialize()\n" );
     this->context  = context;
     this->pool_set = pool_set;
 
-    regions = app.get_regions();
+    list<Region*> regions = app.get_regions();
     if( regions.empty() ) {
         psc_abort( "DVFSPlugin: No code regions are known! Exiting.\n" );
     }
@@ -934,7 +932,7 @@ int DVFSPlugin::model_prediction( float   cycles,
     }
 
     int   iref = NUMBER_OF_FREQ;
-    float xmin = 1.e99;
+    float xmin = FLT_MAX;
 
     for( int i = 0; i < NUMBER_OF_FREQ; ++i ) {
         if( abs( fRef - frequency[ i ] ) < xmin ) {
@@ -1265,6 +1263,7 @@ IPlugin* getPluginInstance( void ) {
 int getVersionMajor( void ) {
     psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ),
                 "DVFSPlugin: call to getInterfaceVersionMajor()\n" );
+
     return DVFS_VERSION_MAJOR;
 }
 
@@ -1281,6 +1280,7 @@ int getVersionMajor( void ) {
 int getVersionMinor( void ) {
     psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ),
                 "DVFSPlugin: call to getInterfaceVersionMinor()\n" );
+
     return DVFS_VERSION_MINOR;
 }
 

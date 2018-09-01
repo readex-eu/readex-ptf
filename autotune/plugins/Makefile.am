@@ -13,9 +13,6 @@ include autotune/plugins/pcap-speedup/src/Makefile.am
 include autotune/plugins/pipeline/src/Makefile.am
 include autotune/plugins/romio/src/Makefile.am
 include autotune/plugins/skeleton/src/Makefile.am
-include autotune/plugins/dvfs_taurus/src/Makefile.am
-include autotune/plugins/ufs_taurus/src/Makefile.am
-include autotune/plugins/epb_taurus/src/Makefile.am
 include autotune/plugins/mpit_cvars/src/Makefile.am
 include autotune/plugins/test/src/Makefile.am
 include autotune/plugins/user/src/Makefile.am

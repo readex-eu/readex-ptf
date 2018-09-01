@@ -416,8 +416,16 @@ computeGranularity( Cnode* ct_node,
         string stat_tuple_t         = tau_tuple_t->getString();
         //cout << stat_tuple_t << endl;
         vector< string > tau_val_t = ValueParser( stat_tuple_t );
-        double avg_t               = stod( tau_val_t.at( 3 ) );
-        double N_time              = stod( tau_val_t.at( 0 ) );
+        //cout << ct_node->get_callee()->get_name() <<"  " << tau_val_t.at( 3 ) <<"  "<< tau_val_t.at( 0 ) << endl;
+        double avg_t;
+        double N_time;
+        try {
+             avg_t               = stod( tau_val_t.at( 3 ) );
+             N_time              = stod( tau_val_t.at( 0 ) );
+        } catch (exception &e) {
+             avg_t               = 0.0;
+             N_time              = 1;
+        }
 
         time = N_time * avg_t;
         occ =  N_time;

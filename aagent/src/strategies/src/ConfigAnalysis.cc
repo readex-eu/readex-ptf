@@ -88,7 +88,7 @@ ConfigAnalysis::~ConfigAnalysis() {
  * @return Returns true as this is single-step strategy
  */
 bool ConfigAnalysis::reqAndConfigureFirstExperiment( Region* r ) {
-    psc_dbgmsg( 1, "Configurable Analysis Strategy: ConfigureFirstExperiment\n" );
+    psc_dbgmsg( 5, "Configurable Analysis Strategy: ConfigureFirstExperiment\n" );
 
     phaseRegion = r;
 
@@ -181,8 +181,8 @@ bool ConfigAnalysis::evaluateAndReqNextExperiment() {
         }
     }
 
-    if( psc_get_debug_level() >= 2 ) {
-        agent->print_property_set( foundProperties, "SET OF FOUND PROPERTIES", true, true );
+    if( psc_get_debug_level() >= 6 ) {
+        agent->print_property_set( foundProperties, "SET OF FOUND PROPERTIES in Configurable Strategy", true, true );
     }
 
     candProperties.clear();

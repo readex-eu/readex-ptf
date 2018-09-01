@@ -106,16 +106,16 @@ StrategyRequest* StrategyRequest::getSubStrategyRequest( void ) {
 
 void StrategyRequest::printStrategyRequest( void ) {
     if( !general_info ) {
-        psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), "Nothing to print for strategy request. General info is NULL!" );
+        psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( StrategyRequests ), "Nothing to print for strategy request. General info is NULL!" );
         return;
     }
 
-    psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), "Strategy general info: " );
-    psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), " - strategy name: %s\n", general_info->strategy_name.c_str() );
-    psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), " - delay phases: %d\n", general_info->delay_phases );
-    psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), " - delay seconds: %d\n", general_info->delay_seconds );
-    psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), " - analysis duration: %d\n", general_info->analysis_duration );
-    psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), " - pedantic: %s\n", general_info->pedantic ? "true" : "false" );
+    psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( StrategyRequests ), "Strategy general info: " );
+    psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( StrategyRequests ), " - strategy name: %s\n", general_info->strategy_name.c_str() );
+    psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( StrategyRequests ), " - delay phases: %d\n", general_info->delay_phases );
+    psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( StrategyRequests ), " - delay seconds: %d\n", general_info->delay_seconds );
+    psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( StrategyRequests ), " - analysis duration: %d\n", general_info->analysis_duration );
+    psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( StrategyRequests ), " - pedantic: %s\n", general_info->pedantic ? "true" : "false" );
 
     list< Scenario* >*            scenarios;
     list< int >*                  PropertyIDs;
@@ -123,17 +123,17 @@ void StrategyRequest::printStrategyRequest( void ) {
     list< TuningSpecification* >* TuningSpecs;
     switch( configuration.type ) {
     case ANALYSIS:
-        psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), "No strategy specific configuration!\n" );
+        psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( StrategyRequests ), "No strategy specific configuration!\n" );
         break;
     case TUNE:
-        psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), "Tuning strategy specific configuration!\n" );
+        psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( StrategyRequests ), "Tuning strategy specific configuration!\n" );
         scenarios = configuration.configuration_union.TuneScenario_list;
         for( const auto& scenario : *scenarios ) {
             scenario->print();
         }
         break;
     case PERSYST:
-        psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), "Persyst strategy specific configuration!\n" );
+        psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( StrategyRequests ), "Persyst strategy specific configuration!\n" );
         if( active_dbgLevel( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ) ) ) {
             cout << "PropertyID: " << endl;
             PropertyIDs = configuration.configuration_union.PersystPropertyID_list;
@@ -144,7 +144,7 @@ void StrategyRequest::printStrategyRequest( void ) {
         }
         break;
     case CONFIG:
-        psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), "Configurable analysis strategy specific configuration!\n" );
+        psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( StrategyRequests ), "Configurable analysis strategy specific configuration!\n" );
         if( active_dbgLevel( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ) ) ) {
             cout << "PropertyID: " << endl;
             requests = configuration.configuration_union.PropertyRequest_list;
@@ -155,7 +155,7 @@ void StrategyRequest::printStrategyRequest( void ) {
         }
         break;
     case PRECONFIGURATION:
-        psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), "Preconfiguration for analysis strategy specific configuration!\n" );
+        psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( StrategyRequests ), "Preconfiguration for analysis strategy specific configuration!\n" );
         if( active_dbgLevel( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ) ) ) {
             cout << "Tuning specification: " << endl;
             TuningSpecs = configuration.configuration_union.TuningSpecification_list;
@@ -165,11 +165,11 @@ void StrategyRequest::printStrategyRequest( void ) {
         }
         break;
     default:
-        psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), "Non defined strategy specific configuration!\n" );
+        psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( StrategyRequests ), "Non defined strategy specific configuration!\n" );
         break;
     }
 
-    if( sub_strategy_request && active_dbgLevel( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ) ) ) {
+    if( sub_strategy_request && active_dbgLevel( PSC_SELECTIVE_DEBUG_LEVEL( StrategyRequests ) ) ) {
         cout << "Sub-strategy request:" << endl;
         sub_strategy_request->printStrategyRequest();
     }

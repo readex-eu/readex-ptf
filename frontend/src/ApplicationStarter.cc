@@ -213,7 +213,7 @@ void ApplicationStarter::runAnalysisAgent( AgentDetails* agent ) {
     common_command << xstr(_AAGENT_EXEC)
                    << " --tag=" << agent->tag
                    << " --parent=" << agent->parent
-                   << " --phase=" << opts.phase_string
+                   << " --phase=\"" << opts.phase_string << "\""
                    << " --port=" << agent->port
                    << " --appname=" << fe->get_appname()
                    << " --id=" << agent->applIds

@@ -8,7 +8,7 @@ using namespace std;
 #include "../include/AdjacencyMatrix.h"
 #include "../include/DetectRegion.h"
 #include "../../common_incl/helper.h"
-
+ 
 /**
  * @brief Create two dimensional adjacency matrix of call-tree
  * @param n
@@ -155,14 +155,14 @@ getRestCandidates( vector< string >& sig_nodes,
     set_intersection( can_sig_regions.begin(), can_sig_regions.end(), parent_nodes.begin(), parent_nodes.end(), std::back_inserter( common ) );
     can_sig_regions.erase( set_difference( can_sig_regions.begin(), can_sig_regions.end(), common.begin(), common.end(),
                                            can_sig_regions.begin() ), can_sig_regions.end() );
-    if( !can_sig_regions.empty() )
-    {
-        cout << "\n\n";
-        cout << "Candidate regions are: " << endl;
-        for( const auto& region : can_sig_regions )
-            cout << region << ' ' << endl;
-        cout << "\n\n\n";
-    }
+    // if( !can_sig_regions.empty() )
+    // {
+    //     cout << "\n\n";
+    //     cout << "Remaining candidate regions are: " << endl;
+    //     for( const auto& region : can_sig_regions )
+    //         cout << "   "<< region << ' ' << endl;
+    //     cout << "\n\n\n";
+    // }
 }
 
 /**
@@ -178,7 +178,7 @@ Cnode* getCnode( string c_name, vector<Cnode*> s_nodes  )
         for( vector<Cnode*>::iterator cnode_i = s_nodes.begin(); cnode_i != s_nodes.end(); ++cnode_i )
         {
             string name = (*cnode_i)->get_callee()->get_name();
-            if( strcasecmp( name.c_str(), c_name.c_str() ) == 0 )
+            if( strcmp( name.c_str(), c_name.c_str() ) == 0 )
                 return *cnode_i;
         }
     }
@@ -209,39 +209,56 @@ getSignificantRegions( vector< string >&      candidate_list,
         vector< string > non_sig_list;
         vector< string > parent_names;
         size_t size = can_region_mapping.size();
+        // for( size_t i = 0; i < size; i++ ){
+        //   string name  = getRegionName( i, can_region_mapping );
+        //   cout << i << "  " << name << endl;
+        // }
+        //printMatrix(size,a_m);
         // Gets all the leaf nodes which are not nested
         for( size_t i = 0; i < size; i++ )
         {
+          string name  = getRegionName( i, can_region_mapping );
+          //cout << "current region: " << name << endl;
+
             bool visited = false;
             for( size_t j = 0; !visited && j < size; j++ )
             {
-                if( a_m[ i ][ j ] == 1 )
+                if( a_m[ i ][ j ] == 1 ){
                     visited = true;
+                    //cout << "Calls: "<< getRegionName( j, can_region_mapping ) << endl;
+                }
             }
             if( !visited )
             {
-                string name  = getRegionName( i, can_region_mapping );
+                //cout << "current region is leaf! " << name << endl;
                 Cnode* cnode = getCnode( name, can_cnodes );
                 //cout <<  "Computing influenced node........." << endl << endl;
                 string modified_name = getInfluencedRegion( phase_node, cnode, input_cube, parent_names );
+                //cout << "Influenced region: " << modified_name << endl;
                 //cout << "Modified name" << modified_name << endl;
                 // Check if the influenced node is the leaf node or not
                 if ( modified_name.empty() )
                 {
                     non_sig_list.push_back( name );
+                    //cout << "Continue"<<endl;
+                    //cout << "-------------------"<<endl;
                     continue;
                 }
                 if( sig_r_names.empty() )
                     sig_r_names.push_back( modified_name );
 
                 //remove leaf if it is not in significant list
-                if( strcasecmp( name.c_str(), modified_name.c_str() ) != 0 )
+                if( strcmp( name.c_str(), modified_name.c_str() ) != 0 )
                 {
                     non_sig_list.push_back( name );
                 }
                 size_t i_i = getIndex( modified_name, can_region_mapping );
                 // get all the parents of the leaf node
                 vector< string > rem_r_names = getParentRegName( i_i, size, a_m, can_region_mapping, parent_names );
+                //cout << endl << "Parents of influenced region " <<modified_name <<": "<< endl;
+                //for( const auto& region : rem_r_names )
+                //    cout <<"   "<< region << ' '<< endl;
+                //cout << endl << endl << endl;
 
                 if( !rem_r_names.empty() )
                 {
@@ -252,20 +269,21 @@ getSignificantRegions( vector< string >&      candidate_list,
                 if( !checkExistingName( modified_name, sig_r_names ) )
                     sig_r_names.push_back( modified_name );
 
-                /*cout << "Significant -- getSigRegiov() regions are: " << endl;
-                for( const auto& region : sig_r_names )
-                    cout << region << ' ';
-                cout << endl << endl << endl;
-
-                cout << "NOn Significant regions are: " << endl;
-                for( const auto& region : non_sig_list )
-                    cout << region << ' ';
-                cout << endl << endl << endl;
-
-                cout << "Parent regions are: " << endl;
-                for( const auto& region : parent_names )
-                    cout << region << ' ';
-                cout << endl << endl << endl;*/
+                // cout << "Significant -- getSigRegiov() regions are: " << endl;
+                // for( const auto& region : sig_r_names )
+                //     cout << "   "<< region << ' '<< endl;
+                // cout << endl << endl << endl;
+                //
+                // cout << "Non Significant regions are: " << endl;
+                // for( const auto& region : non_sig_list )
+                //     cout << "   "<< region << ' '<< endl;
+                // cout << endl << endl << endl;
+                //
+                // cout << "Parent regions are: " << endl;
+                // for( const auto& region : parent_names )
+                //     cout << "   "<< region << ' '<< endl;
+                // cout << endl << endl << endl;
+                // cout << "-------------------"<<endl;
             }
         }
 
@@ -460,7 +478,7 @@ getIndex( const string&                node_name,
     for( const auto& region : regions )
     {
         string sig_r_name = region.second;
-        if( strcasecmp( node_name.c_str(), sig_r_name.c_str() ) == 0 )
+        if( strcmp( node_name.c_str(), sig_r_name.c_str() ) == 0 )
             return region.first;
     }
 

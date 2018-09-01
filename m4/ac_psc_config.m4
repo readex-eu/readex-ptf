@@ -7,8 +7,8 @@ AC_DEFUN([AC_PSC_CONFIG], [
   AC_DEFINE_UNQUOTED([PERISCOPE_DOCUMENTATION_DIRECTORY], ["${prefix}/docs"], [Periscope documentation directory.])
 
   AC_DEFINE_UNQUOTED([PERISCOPE_SOURCE_DIRECTORY], ["${srcdir}"], [Periscope source code location.])
-	AC_SUBST([PERISCOPE_SOURCE_DIRECTORY_IN_SCRIPTS], ["${srcdir}"])
-	AC_SUBST([PERISCOPE_FULL_PATH_SOURCE_DIRECTORY_IN_SCRIPTS], ["${PWD}/${srcdir}"])
+  AC_SUBST([PERISCOPE_SOURCE_DIRECTORY_IN_SCRIPTS], ["${srcdir}"])
+  AC_SUBST([PERISCOPE_FULL_PATH_SOURCE_DIRECTORY_IN_SCRIPTS], ["${PWD}/${srcdir}"])
 
   AC_DEFINE_UNQUOTED([PERISCOPE_PLUGINS_DIRECTORY], ["${prefix}/plugins"], [Periscope plugins directory.])
 
@@ -36,8 +36,7 @@ AC_DEFUN([AC_PSC_CONFIG], [
   AC_SUBST([autotune_plugin_base_ldflags], [${PSC_BOOST_LDFLAGS}])
 
   AC_SUBST([autotune_plugin_base_libadd], ['$(top_builddir)/autotune/datamodel/src/libdatamodel.la\
-                                            $(top_builddir)/autotune/services/src/libservices.la\
-  '])
+                                            $(top_builddir)/autotune/services/src/libservices.la'])
 
   AC_SUBST([autotune_search_base_cxxflags], ['${global_compiler_flags} \
                                               -std=c++14 \
@@ -93,33 +92,43 @@ AC_DEFUN([AC_PSC_CONFIG], [
                                                 libpscproperties.a \
                                                 libdatamodel.la \
                                                 libservices.la'])
-
+                                                
+  AC_ARG_ENABLE([tda], AS_HELP_STRING([--enable-tda], [Enable the use of TDA. Options: yes no (optional, no by default)]))
+  AC_ARG_ENABLE([sqlite], AS_HELP_STRING([--enable-sqlite], [Enable the use of SQLite3. Options: yes no (optional, no by default)]))
   AC_ARG_ENABLE([developer-mode], AS_HELP_STRING([--enable-developer-mode], [Enable features that are targeted for developers (including the tutorials).]))
   developer_mode="no"
-	if test x"${enable_developer_mode}" = xyes; then
-		echo "Developer mode enabled."
-		developer_mode="yes"
+  if test x"${enable_developer_mode}" = xyes; then
+    echo "Developer mode enabled."
+    developer_mode="yes"
   else
     echo "Disabled developer mode."
-	fi
+  fi
   AM_CONDITIONAL([DEVELOPER_MODE], [test "x${developer_mode}" = "xyes"])
-	AC_PSC_SUMMARY([Developer mode: ],[${developer_mode}])
+  AC_PSC_SUMMARY([Developer mode: ],[${developer_mode}])
 
-	if test "$GIT" != ":"; then
-		if test -d ".git/"; then
-			git rev-list --count master > REVISION
-		fi
-	fi
+  if test "$GIT" != ":"; then
+    if test -d ".git/"; then
+      git rev-list --count master > REVISION
+    fi
+  fi
 
-	AC_SUBST([REVISION],m4_esyscmd([tr -d '\n' <REVISION]))
+  AC_SUBST([REVISION],m4_esyscmd([tr -d '\n' <REVISION]))
   AC_SUBST([PERISCOPE_VERSION],m4_esyscmd([tr -d '\n' <PERISCOPE_VERSION]))
   AC_SUBST([PATHWAY_VERSION],m4_esyscmd([tr -d '\n' <PATHWAY_VERSION]))
 
-	AC_PSC_PLUGIN_VERSION([Compiler Flags Selection (CFS)],[compilerflags],[COMPILERFLAGS])
-	AC_PSC_PLUGIN_VERSION([DVFS],[dvfs],[DVFS])
-	AC_PSC_PLUGIN_VERSION([MasterWorker],[masterworker],[MASTERWORKER])
-	AC_PSC_PLUGIN_VERSION([MPI Parameters],[mpiparameters],[MPIPARAMETERS])
-	AC_PSC_PLUGIN_VERSION([Pipeline Pattern],[pipeline],[PIPELINE])
-
+  AC_PSC_PLUGIN_VERSION([Adaptive Sequence Meta-plugin (AS)],[adaptivesequence],[ADAPTIVE_SEQUENCE])
+  AC_PSC_PLUGIN_VERSION([Compiler Flags Selection (CFS)],[compilerflags],[COMPILERFLAGS])
+  AC_PSC_PLUGIN_VERSION([DVFS],[dvfs],[DVFS])
+  AC_PSC_PLUGIN_VERSION([Energy],[energy],[ENERGY])
+  AC_PSC_PLUGIN_VERSION([Fixed Sequence Meta-plugin (FS)],[fixedsequence],[FIXED_SEQUENCE])
+  AC_PSC_PLUGIN_VERSION([MasterWorker],[masterworker],[MASTERWORKER])
+  AC_PSC_PLUGIN_VERSION([MPICAP],[mpicap],[MPICAP])
+  AC_PSC_PLUGIN_VERSION([MPI Parameters],[mpiparameters],[MPIPARAMETERS])
+  AC_PSC_PLUGIN_VERSION([PCAP],[pcap],[PCAP])
+  AC_PSC_PLUGIN_VERSION([Pipeline Pattern],[pipeline],[PIPELINE])
+  AC_PSC_PLUGIN_VERSION([READEX Configuration],[readex_configuration],[READEX_CONFIGURATION])
+  AC_PSC_PLUGIN_VERSION([READEX Interphase],[readex_interphase],[READEX_INTERPHASE])
+  AC_PSC_PLUGIN_VERSION([READEX Intraphase],[readex_intraphase],[READEX_INTRAPHASE])
+  AC_PSC_PLUGIN_VERSION([READEX Intraphase Model],[readex_intraphase_model],[READEX_INTRAPHASE_MODEL])
+  AC_PSC_PLUGIN_VERSION([ROMIO],[romio],[ROMIO])
 ])
-

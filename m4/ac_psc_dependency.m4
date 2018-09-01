@@ -7,15 +7,11 @@ AC_DEFUN([AC_PSC_DEPENDENCY], [
   dnl 6 : LDFLAGS
   dnl 7 : required version
   dnl 8 : mandatory dependency (yes or no)
-  dnl 9 : requires a link option in psc_instrument (yes or no)
+  dnl 9 : mandatory message (mandatory or optional).
   dnl 10: perform library test with symbol 'main'
 
   AC_MSG_NOTICE(["-----------------------------------------------------------------------------------------------------"])
   AC_MSG_NOTICE([Checking for $1; mandatory dependency: $8 ...])
-
-  if test "$8" = "no"; then
-    AC_ARG_ENABLE([$2], AS_HELP_STRING([--enable-$2], [Enable the use of $1. Options: yes no (disabled by default)]))
-  fi
 
   dnl header options and check
   AC_ARG_WITH([$2-include],

@@ -139,8 +139,9 @@ void TuningParameter::setRange( int start,
     this->step = incr;
 }
 
-void TuningParameter::setRangeTo( int stop ) {
+void TuningParameter::setRangeTo( int stop, int incr ) {
     this->to   = stop;
+    this->step = incr;
 }
 
 void TuningParameter::setDefaultValue( int default_value ) {

@@ -45,6 +45,8 @@ enum PSC_SELECTIVE_DEBUG_LEVEL {
     QualityExpressionEvents,                    //1015
     RtsInfo,                                    //1016
     ApplTuningParameter,                        //1017
+    StrategyRequests,                           //1018
+    CallTree,                                   //1019
     LAST_SELECTIVE_DEBUG
 };
 
@@ -67,6 +69,8 @@ const char* dbgLevelsDefs[] = {
     "QualityExpressionEvents",           //1015
     "RtsInfo",                           //1016
     "ApplTuningParameter",               //1017
+    "StrategyRequests",                  //1018
+    "CallTree",                          //1019
 };
 
 //If you add a level increase this constant.

@@ -275,22 +275,22 @@ void Scenario::print( void ) {
             else if( ( *tsi )->getTypeOfVariantContext() == variant_context_type( RTS_LIST ) ) {
                 VariantContext context = ( *tsi )->getVariantContext();
                 list<string>*  entities = context.context_union.entity_list;
-                printf( "RTS_LIST of size %d\n", entities->size() );
+                printf( "RTS_LIST of size %lu\n", entities->size() );
                 fflush( stdout );
                 std::list<string>::iterator entity_iter;
                 for( entity_iter = entities->begin(); entity_iter != entities->end(); entity_iter++ ) {
-                    printf( " --- RTS (%s) \n", entity_iter->c_str() );
+                    printf( " --- RTS (%s)\n", entity_iter->c_str() );
                     fflush( stdout );
                 }
             }
             else if( ( *tsi )->getTypeOfVariantContext() == variant_context_type( REGION_LIST ) ) {
                 VariantContext context = ( *tsi )->getVariantContext();
                 list<string>*  entities = context.context_union.entity_list;
-                printf( "REGION_LIST of size %d\n", entities->size() );
+                printf( "REGION_LIST of size %lu\n", entities->size() );
                 fflush( stdout );
                 std::list<string>::iterator entity_iter;
                 for( entity_iter = entities->begin(); entity_iter != entities->end(); entity_iter++ ) {
-                    printf( " --- Region (%s) \n", entity_iter->c_str() );
+                    printf( " --- Region (%s)\n", entity_iter->c_str() );
                     fflush( stdout );
 
                 }

@@ -231,11 +231,11 @@ public:
 
     void writeCFSresults( string str );
 
-    const int getNumParameters() const {
+    int getNumParameters() const {
         return tuningParameters.size();
     }
 
-    const int getNumValues( int i ) const {
+    int getNumValues( int i ) const {
         return ( tuningParameters.at( i )->getRangeTo() -
                  tuningParameters.at( i )->getRangeFrom() +
                  tuningParameters.at( i )->getRangeStep() ) /

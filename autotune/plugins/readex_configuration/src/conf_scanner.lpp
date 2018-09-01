@@ -50,6 +50,6 @@ NormalizedTCO                        {return NORMALIZEDTCO;}
 "//".*"\n"                           {line_num++;}
 "\n"                                 {line_num++;}
 [0-9]+                               {yylval.ival = atoi(yytext); return INT; }
-\"[\-a-zA-Z$0-9_~*\,\)\(\ /\.-= ]+\" {yylval.sval = strdup(yytext)+1; yylval.sval[strlen(yylval.sval)-1]='\0';return STRING;}
+\"[\-a-zA-Z$0-9_~*\@\,\)\(\ /\.-= ]+\" {yylval.sval = strdup(yytext)+1; yylval.sval[strlen(yylval.sval)-1]='\0';return STRING;}
 .                                    {printf ("Error: (%c), Line %d\n", yytext[0], line_num); return (yytext[0]);}
 %%

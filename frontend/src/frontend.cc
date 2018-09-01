@@ -298,7 +298,7 @@ void PeriscopeFrontend::run_tuning_plugin( ACE_Reactor* reactor ) {
                                     "Prepared scenario pool empty = %d\n",
                                     frontend_pool_set->psp->empty() );
                         if( !frontend_pool_set->psp->empty() ) {
-                            psc_infomsg( "Prepared scenario pool not empty, still searching...\n" );
+                            psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), "Prepared scenario pool not empty, still searching...\n" );
                         }
                         this->plugin_context->experiment_count++;
                     }
@@ -530,8 +530,8 @@ void PeriscopeFrontend::add_started_agent( int num_procs ) {
     }
 
     if( ranks_started == get_mpinumprocs() ) {
-        psc_dbgmsg( 1, "Agent network UP and RUNNING. Starting search.\n\n" );
-        psc_dbgmsg( 1, "Agent network started in %5.1f seconds\n", psc_wall_time() );
+        psc_dbgmsg( 6, "Agent network UP and RUNNING. Starting search.\n\n" );
+        psc_dbgmsg( 6, "Agent network started in %5.1f seconds\n", psc_wall_time() );
 
         if( !agent_hierarchy_started ) {
             agent_hierarchy_started = true;
@@ -1009,7 +1009,6 @@ void PeriscopeFrontend::start() {
 
 //RM: Should be cleaned up here and moved into run handle for both analysis and tuning.
     if( serializedStrategyRequest.size() == 0 ) {
-        psc_dbgmsg( 1, "Search finished.\n" );
         fe->stop();
         return;
     }
@@ -1039,7 +1038,7 @@ void PeriscopeFrontend::start() {
 }
 
 void PeriscopeFrontend::stop_agents_for_calltree() {
-    psc_dbgmsg( 1, "Call-tree sent by one/more agents. Stopping agents.\n" );
+    psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( CallTree ), "Call-tree sent by one/more agents. Stopping agents.\n" );
     fe->stop();
     return;
 }
@@ -2482,7 +2481,7 @@ void PeriscopeFrontend::properties() {
         limitProps = opts.nrprops;
     }
 
-    if( limitProps > 0 ) {
+    if( limitProps > 0 && strcmp(opts.strategy, "tune")) {
         std::cout << std::endl << "ALL FOUND PROPERTIES" << std::endl;
         std::cout << "-------------------------------------------------------------------------------\n";
 //        std::cout << std::setw(7) << "Procs\t" << std::setw(7) << "Threads\t"
@@ -2615,7 +2614,7 @@ void PeriscopeFrontend::request_calltree() {
     std::map<std::string, AgentInfo>::iterator it;
     for( it = child_agents_.begin(); it != child_agents_.end(); it++ ) {
         AgentInfo& ag = it->second;
-        psc_dbgmsg( 1, "Checking for call-tree nodes...\n" );
+        psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( CallTree ), "Checking for call-tree nodes...\n" );
         ag.handler->serializecalltree();
     }
 }

@@ -466,7 +466,7 @@ void autotune_msm::run_phase_experiments_action( run_phase_experiments const& ev
              evt.reactor->reset_reactor_event_loop();
              evt.reactor->register_handler( 0, evt.fe, ACE_Event_Handler::READ_MASK );
              evt.reactor->register_handler( SIGINT, evt.fe );
-             psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( FrontendStateMachines ), "Get call-tree\n" );
+             psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( CallTree ), "Get call-tree\n" );
              ace_communication_phase( evt.fe, PeriscopeFrontend::REQUESTCALLTREE, fe->get_fastmode() );
 
              // Set the isValidRts flag for all leaf nodes
@@ -475,7 +475,7 @@ void autotune_msm::run_phase_experiments_action( run_phase_experiments const& ev
              //psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( FrontendStateMachines ), "Printing rts tree in frontend \n" );
              //rtstree::printTree( appl->getCalltreeRoot() );
 
-             psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( FrontendStateMachines ), "Get call-tree done\n" );
+             psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( CallTree ), "Get call-tree done\n" );
 
 
              /*Modifying significant regions dynamically. To make sure we get the objective values for significant regions even if
@@ -487,7 +487,7 @@ void autotune_msm::run_phase_experiments_action( run_phase_experiments const& ev
                  // extract the significant regions from configuration file provided by readex-dyn-detect tool
                  BOOST_FOREACH(ptree::value_type &v, configTree.get_child( "Configuration.readex-dyn-detect.Intra-phase" ) ) {
                      std::string name = v.second.get<std::string>("name");
-                     psc_dbgmsg( 1, "Region Name: %s \n", name.c_str() );
+                     //psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "Significant region name: %s \n", name.c_str() );
                      names.push_back( name );
                  }
 
@@ -691,7 +691,6 @@ void autotune_msm::start_application_and_agent_network( ACE_Reactor& reactor ) {
             // extract the significant regions from configuration file provided by readex-dyn-detect tool
             BOOST_FOREACH(ptree::value_type &v, configTree.get_child( "Configuration.readex-dyn-detect.Intra-phase" ) ) {
                 std::string name = v.second.get<std::string>("name");
-                psc_dbgmsg( 1, "Region Name: %s \n", name.c_str() );
                 names.push_back( name );
             }
 
@@ -853,8 +852,8 @@ void pushStrategyRequest( StrategyRequest* strategy_request ) {
         throw std::invalid_argument( "The strategy request cannot be a nullptr." );
     }
 
-    psc_dbgmsg( 2, "Strategy requests in the frontend:\n" );
-    if( psc_get_debug_level() >= 2 ) {
+    psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( FrontendStateMachines ), "Strategy requests in the frontend:\n" );
+    if( psc_get_debug_level() >= 4 ) {
         strategy_request->printStrategyRequest();
     }
     fe->serializeStrategyRequests( strategy_request );

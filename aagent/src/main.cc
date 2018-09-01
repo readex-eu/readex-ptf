@@ -587,7 +587,7 @@ int main( int   argc,
                 }
             }
         }
-        psc_dbgmsg( 1, "Using reg_host=%s reg_port=%d\n", reg_host, reg_port );
+        psc_dbgmsg( 6, "Using reg_host=%s reg_port=%d\n", reg_host, reg_port );
         regsrv = new RegistryService( reg_host, reg_port );
     }
 
@@ -740,7 +740,7 @@ int main( int   argc,
         agent->set_appname( "(unknown)" );
     }
 
-    psc_dbgmsg( 1, "Appname is set to: %s\n", appl->get_app_name().c_str() );
+    psc_dbgmsg( 6, "Appname is set to: %s\n", appl->get_app_name().c_str() );
 
     std::list<int> ids;
 
@@ -855,7 +855,7 @@ int main( int   argc,
             std::string parentTag;
             parentTag = opts.parent_string;
             agent->set_parent( parentTag );
-            psc_dbgmsg( 2, "Using parent %s\n",  agent->parent() );
+            psc_dbgmsg( 6, "Using parent %s\n",  agent->parent() );
             if( agent->connect_to_parent() == -1 ) {
                 psc_errmsg( "Error in analysisagent connecting to parent at %s\n", agent->parent() );
                 exit( 1 );

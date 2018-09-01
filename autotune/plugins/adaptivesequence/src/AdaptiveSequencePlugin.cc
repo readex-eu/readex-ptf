@@ -726,7 +726,7 @@ IPlugin* getPluginInstance( void ) {
 int getVersionMajor( void ) {
     psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), "AdaptiveSequencePlugin: call to getVersionMajor()\n" );
 
-    return 1;
+    return ADAPTIVE_SEQUENCE_VERSION_MAJOR;
 }
 
 /**
@@ -738,7 +738,7 @@ int getVersionMajor( void ) {
 int getVersionMinor( void ) {
     psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), "AdaptiveSequencePlugin: call to getVersionMinor()\n" );
 
-    return 0;
+    return ADAPTIVE_SEQUENCE_VERSION_MINOR;
 }
 
 /**

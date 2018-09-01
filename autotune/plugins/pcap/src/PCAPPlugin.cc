@@ -978,7 +978,7 @@ int getVersionMajor(void)
     psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins),
             "PCAPPlugin: call to getInterfaceVersionMajor()\n");
 
-    return 1;
+    return PCAP_VERSION_MAJOR;
 }
 
 /**
@@ -994,7 +994,7 @@ int getVersionMinor(void)
     psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins),
             "PCAPPlugin: call to getInterfaceVersionMinor()\n");
 
-    return 0;
+    return PCAP_VERSION_MINOR;
 }
 
 /**

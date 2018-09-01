@@ -274,6 +274,7 @@ Gather_Required_Info_Type DataProvider::getResults() {
         free( rts_meas );
         /* Release metrics definition buffer since it is not needed */
         free( metrics );
+        //pdb->print_db();
     }     //loop over processes
 
     //decrement burst counter if it is greater then zero
@@ -441,6 +442,25 @@ void DataProvider::transfer_num_iterations_to_processes() {
         write_line(&process, request.c_str());
 }
 
+void verifyEnergySpecification(){
+  std::string node="node",cpu0="cpu0",cpu1="cpu1";
+
+  if (opts.has_configurationfile) {
+    try {
+        node = configTree.get < std::string > ("Configuration.periscope.metrics.node_energy");
+    } catch (exception &e) {}
+    try {
+        cpu0 = configTree.get < std::string > ("Configuration.periscope.metrics.cpu0_energy");
+    } catch (exception &e) {}
+    try {
+        cpu1 = configTree.get < std::string > ("Configuration.periscope.metrics.cpu1_energy");
+    } catch (exception &e) {}
+    if (node==cpu0 || node == cpu1  || cpu0==cpu1){
+      psc_abort( "Error: Same scorep metric specified for different energy metrics (node_energy, cpu0_energy, cpu1_energy) in readex_config.cfg.\n");
+    }
+  }
+
+}
 
 void DataProvider::transfer_measurement_requests_to_processes() {
     std::list<ApplProcess>::iterator process;
@@ -497,6 +517,7 @@ void DataProvider::transfer_measurement_requests_to_processes() {
                 char* metricPlugin;
                 std::string metricPlugin_s;
                 if (opts.has_configurationfile) {
+                    verifyEnergySpecification();
                     try {
                         metricPlugin_s = configTree.get < std::string > ("Configuration.periscope.metricPlugin.name");
                     } catch (exception &e) {

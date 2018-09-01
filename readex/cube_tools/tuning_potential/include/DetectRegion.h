@@ -45,6 +45,11 @@ traverseTree( Cnode*                  call_node,
               vector< Cnode* >&       sign_nodes,
               double                  gran_threshold,
               bool                    coarse_regions_only );
+/**
+ * @brief check for MPI/OMP parallel events of all the children of the current node's parent
+ */
+void
+checkParallelEvents (Cnode* curr_node, Cnode* call_node, bool* has_p_event);
 
 /*
  * Create adjacency matrix from call tree

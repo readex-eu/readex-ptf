@@ -58,7 +58,6 @@ static void add_dbgLevel( const string& level ) {
         dbgLevels[ dbgLevelToInt( "AutotunePlugins" ) ]       = 1;
         dbgLevels[ dbgLevelToInt( "AutotuneSearch" ) ]        = 1;
         dbgLevels[ dbgLevelToInt( "AutotuneAgentStrategy" ) ] = 1;
-        dbgLevels[ dbgLevelToInt( "FrontendStateMachines" ) ] = 1;
     }
 
     else if( i == QualityExpressions ) {

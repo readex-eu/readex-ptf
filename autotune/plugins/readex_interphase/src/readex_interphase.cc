@@ -70,36 +70,49 @@ void ReadexInterphasePlugin::initialize(DriverContext* context, ScenarioPoolSet*
     current_step = 0;
     this->context = context;
     this->pool_set = pool_set;
+    min_freq        = 1200;
+    max_freq        = 2400;
+    freq_step       = 400;
 
     psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "ReadexInterphasePlugin: got pool and context\n");
     /*
      * Access tuning parameters from the global configTree
      */
 
-    try {
-        this->min_freq = atoi(configTree.get < std::string > ("Configuration.tuningParameter.frequency.min_freq").c_str());
-        this->max_freq = atoi(configTree.get < std::string > ("Configuration.tuningParameter.frequency.max_freq").c_str());
-        this->freq_step = atoi(configTree.get < std::string > ("Configuration.tuningParameter.frequency.freq_step").c_str());
-        threadsLB = atoi(configTree.get < std::string > ("Configuration.tuningParameter.openMPThreads.lower_value").c_str());
-        threadsStep = atoi(configTree.get < std::string > ("Configuration.tuningParameter.openMPThreads.step").c_str());
-    } catch (exception &e) {
-        psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "ReadexInterphasePlugin: %s\n", e.what());
-    }
+    int default_cpu_freq(2500);
+     try {
+         this->min_freq = atoi(configTree.get < std::string > ("Configuration.tuningParameter.frequency.min_freq").c_str());
+         this->max_freq = atoi(configTree.get < std::string > ("Configuration.tuningParameter.frequency.max_freq").c_str());
+         this->freq_step = atoi(configTree.get < std::string > ("Configuration.tuningParameter.frequency.freq_step").c_str());
+         default_cpu_freq = atoi(configTree.get < std::string > ("Configuration.tuningParameter.frequency.default").c_str());
+     } catch (exception &e) {
+         psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "ReadexIntraphasePlugin: %s\n", e.what());
+     }
 
-    /* Check the datatype of each entry */
-    if( isnan ( this->min_freq ) )
-        psc_abort( "min_freq attribute has to be a number\n" );
-    if( isnan ( this->max_freq ) )
-        psc_abort( "max_freq attribute has to be a number\n" );
-    if( isnan ( this->freq_step ) )
-        psc_abort( "freq_step attribute has to be a number\n" );
+     try {
+         threadsLB = atoi(configTree.get < std::string > ("Configuration.tuningParameter.openMPThreads.lower_value").c_str());
+         threadsStep = atoi(configTree.get < std::string > ("Configuration.tuningParameter.openMPThreads.step").c_str());
+     } catch (exception &e) {
+         psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "ReadexIntraphasePlugin: %s\n", e.what());
+     }
 
-    /*check if minimum frequency is smaller than maximum frequency*/
-    if( this->min_freq > this->max_freq )
-        psc_abort( "Minimum frequency can not be greater than maximum frequency\n" );
 
-    if( ( this->max_freq - this->min_freq)%this->freq_step != 0 )
-        psc_abort( "invalid frequency step\n" );
+     /* Check the datatype of each entry */
+     if( isnan ( this->min_freq ) )
+         psc_abort( "min_freq attribute has to be a number\n" );
+     if( isnan ( this->max_freq ) )
+         psc_abort( "max_freq attribute has to be a number\n" );
+     if( isnan ( this->freq_step ) )
+         psc_abort( "freq_step attribute has to be a number\n" );
+
+     /*check if minimum frequency is smaller than maximum frequency*/
+     if( this->min_freq > this->max_freq )
+         psc_abort( "Minimum frequency can not be greater than maximum frequency\n" );
+
+     if( ( this->max_freq - this->min_freq)%this->freq_step != 0 ){
+       int steps=(this->max_freq - this->min_freq)/this->freq_step;
+       this->max_freq=this->min_freq+steps*this->freq_step;
+     }
 
     /* Check the datatype of each entry */
     if( isnan ( threadsLB ) )
@@ -115,6 +128,7 @@ void ReadexInterphasePlugin::initialize(DriverContext* context, ScenarioPoolSet*
     cpuFrequency->setName("CPU_FREQ");
     cpuFrequency->setPluginType(Readex_Interphase);
     cpuFrequency->setRange(min_freq, max_freq, freq_step);
+    cpuFrequency->setDefaultValue(default_cpu_freq);
     cpuFrequency->setRuntimeActionType(TUNING_ACTION_FUNCTION_POINTER);
     tuningParameters.push_back(cpuFrequency);
 
@@ -127,39 +141,45 @@ void ReadexInterphasePlugin::initialize(DriverContext* context, ScenarioPoolSet*
     numberOfThreads->setName("NUMTHREADS");
     numberOfThreads->setPluginType(Readex_Interphase);
     numberOfThreads->setRange(threadsLB, context->getOmpnumthreads(), threadsStep);
+    numberOfThreads->setDefaultValue(context->getOmpnumthreads());
     numberOfThreads->setRuntimeActionType(TUNING_ACTION_FUNCTION_POINTER);
     tuningParameters.push_back(numberOfThreads);
 
-    int min(10), max(30), step(2);
-    try {
-        min = atoi(configTree.get < std::string > ("Configuration.tuningParameter.uncore.min_freq").c_str());
-        max = atoi(configTree.get < std::string > ("Configuration.tuningParameter.uncore.max_freq").c_str());
-        step = atoi(configTree.get < std::string > ("Configuration.tuningParameter.uncore.freq_step").c_str());
-    } catch (exception &e) {
-        psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "ReadexInterphasePlugin: %s\n", e.what());
-    }
+    int min(1000), max(3000), step(1000), default_uncore_freq(3000);
+     try {
+         min = atoi(configTree.get < std::string > ("Configuration.tuningParameter.uncore.min_freq").c_str());
+         max = atoi(configTree.get < std::string > ("Configuration.tuningParameter.uncore.max_freq").c_str());
+         step = atoi(configTree.get < std::string > ("Configuration.tuningParameter.uncore.freq_step").c_str());
+         default_uncore_freq = atoi(configTree.get < std::string > ("Configuration.tuningParameter.uncore.default").c_str());
 
-    /* Check the datatype of each entry */
-    if( isnan ( min ) )
-        psc_abort( "min_freq attribute has to be a number\n" );
-    if( isnan ( max ) )
-        psc_abort( "max_freq attribute has to be a number\n" );
-    if( isnan ( step ) )
-        psc_abort( "freq_step attribute has to be a number\n" );
+     } catch (exception &e) {
+         psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "ReadexIntraphasePlugin: %s\n", e.what());
+     }
 
-    /*check if minimum frequency is smaller than maximum frequency*/
-    if( min > max )
-        psc_abort( "Minimum frequency can not be greater than maximum frequency\n" );
-    if( (max - min)%step != 0 )
-        psc_abort( "invalid frequency step\n" );
+     /* Check the datatype of each entry */
+     if( isnan ( min ) )
+         psc_abort( "min_freq attribute has to be a number\n" );
+     if( isnan ( max ) )
+         psc_abort( "max_freq attribute has to be a number\n" );
+     if( isnan ( step ) )
+         psc_abort( "freq_step attribute has to be a number\n" );
 
-    TuningParameter* uncoreFrequnecy = new TuningParameter();
-    uncoreFrequnecy->setId(2);
-    uncoreFrequnecy->setName("UNCORE_FREQ");
-    uncoreFrequnecy->setPluginType(Readex_Interphase);
-    uncoreFrequnecy->setRange(min, max, step);
-    uncoreFrequnecy->setRuntimeActionType(TUNING_ACTION_FUNCTION_POINTER);
-    tuningParameters.push_back(uncoreFrequnecy);
+     /*check if minimum frequency is smaller than maximum frequency*/
+     if( min > max )
+         psc_abort( "Minimum frequency can not be greater than maximum frequency\n" );
+     if( (max - min)%step != 0 ){
+       int steps=(max-min)/step;
+       max=min+steps*step;
+     }
+
+    TuningParameter* uncoreFrequency = new TuningParameter();
+    uncoreFrequency->setId(2);
+    uncoreFrequency->setName("UNCORE_FREQ");
+    uncoreFrequency->setPluginType(Readex_Interphase);
+    uncoreFrequency->setRange(min, max, step);
+    uncoreFrequency->setDefaultValue(default_uncore_freq);
+    uncoreFrequency->setRuntimeActionType(TUNING_ACTION_FUNCTION_POINTER);
+    tuningParameters.push_back(uncoreFrequency);
 
     if (PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins) == AutotunePlugins) {
         cout << "ReadexInterphasePlugin: Tuning parameters are:\n";
@@ -369,7 +389,7 @@ void ReadexInterphasePlugin::createScenarios(void) {
     if(tuningStep >= 2) {
         std::map<TuningParameter*, int> defaultConfig;
         for (auto tuningParameter : tuningParameters) {
-            defaultConfig.insert(std::make_pair(tuningParameter, getDefaultTuningValue(tuningParameter->getName())));
+            defaultConfig.insert(std::make_pair(tuningParameter, tuningParameter->getDefaultValue()));
         }
 
         for(auto& phase : interph::dtaPhases) {
@@ -444,20 +464,20 @@ void ReadexInterphasePlugin::createScenarios(void) {
 }
 
 
-/**
- * @brief Return the default values for the tuning parameters for tuning step = 2
- */
-int ReadexInterphasePlugin::getDefaultTuningValue(std::string tp_name) {
-    if(tp_name == "CPU_FREQ") {
-        return 2500000;
-    }
-    else if(tp_name == "NUMTHREADS" ) {
-        return context->getOmpnumthreads();
-    }
-    else if(tp_name == "UNCORE_FREQ") {
-        return 30;
-    }
-}
+///**
+// * @brief Return the default values for the tuning parameters for tuning step = 2
+// */
+//int ReadexInterphasePlugin::getDefaultTuningValue(std::string tp_name) {
+//    if(tp_name == "CPU_FREQ") {
+//        return 2500000;
+//    }
+//    else if(tp_name == "NUMTHREADS" ) {
+//        return context->getOmpnumthreads();
+//    }
+//    else if(tp_name == "UNCORE_FREQ") {
+//        return 30;
+//    }
+//}
 
 
 /**
@@ -518,7 +538,6 @@ void ReadexInterphasePlugin::defineExperiment(int numprocs, bool& analysisRequir
     psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "ReadexInterphasePlugin: Processing significant regions\n");
     code_significant_regions = appl->get_sig_regions_list();
     std::list<Region*>::iterator code_sig_regions_it;
-    printf("code_significant_regions.size(): %d\n",code_significant_regions.size());fflush(stdout);
 
     if (code_significant_regions.size() > 0) {
         StrategyRequestGeneralInfo* analysisStrategyRequest = new StrategyRequestGeneralInfo;
@@ -1516,7 +1535,7 @@ IPlugin* getPluginInstance(void) {
 int getVersionMajor(void) {
     psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "ReadexInterphasePlugin: call to getInterfaceVersionMajor()\n");
 
-    return 1;
+    return READEX_INTERPHASE_VERSION_MAJOR;
 }
 
 /**
@@ -1530,7 +1549,7 @@ int getVersionMajor(void) {
 int getVersionMinor(void) {
     psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "ReadexInterphasePlugin: call to getInterfaceVersionMinor()\n");
 
-    return 0;
+    return READEX_INTERPHASE_VERSION_MINOR;
 }
 
 /**

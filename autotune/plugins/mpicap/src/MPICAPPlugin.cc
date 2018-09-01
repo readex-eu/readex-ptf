@@ -299,7 +299,8 @@ IPlugin* getPluginInstance() {
  */
 int getVersionMajor() {
     psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), "MPICAP: call to getInterfaceVersionMajor()\n" );
-    return 1;
+
+    return MPICAP_VERSION_MAJOR;
 }
 
 
@@ -310,7 +311,8 @@ int getVersionMajor() {
  */
 int getVersionMinor() {
     psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), "MPICAP: call to getInterfaceVersionMinor()\n" );
-    return 0;
+
+    return MPICAP_VERSION_MINOR;
 }
 
 

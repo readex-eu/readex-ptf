@@ -9,6 +9,10 @@ Pathway version:          @PATHWAY_VERSION@
 
 Plugin information:
 
+Adaptive Sequence:
+Version:                  @ADAPTIVE_SEQUENCE_VERSION@
+Revision:                 @ADAPTIVE_SEQUENCE_REVISION@
+
 Compiler Flags Selection: 
 Version:                  @COMPILERFLAGS_VERSION@
 Revision:                 @COMPILERFLAGS_REVISION@
@@ -17,14 +21,50 @@ DVFS:
 Version:                  @DVFS_VERSION@
 Revision:                 @DVFS_REVISION@
 
+Energy:
+Version:                  @ENERGY_VERSION@
+Revision:                 @ENERGY_REVISION@
+
+Fixed Sequence:
+Version:                  @FIXED_SEQUENCE_VERSION@
+Revision:                 @FIXED_SEQUENCE_REVISION@
+
 Master Worker: 
 Version:                  @MASTERWORKER_VERSION@
 Revision:                 @MASTERWORKER_REVISION@
+
+MPICAP:
+Version:                  @MPICAP_VERSION@
+Revision:                 @MPICAP_REVISION@
 
 MPI Parameters: 
 Version:                  @MPIPARAMETERS_VERSION@
 Revision:                 @MPIPARAMETERS_REVISION@
 
+PCAP:
+Version:                  @PCAP_VERSION@
+Revision:                 @PCAP_REVISION@
+
 Pipeline Pattern: 
 Version:                  @PIPELINE_VERSION@
 Revision:                 @PIPELINE_REVISION@
+
+READEX Configuration:
+Version:                  @READEX_CONFIGURATION_VERSION@
+Revision:                 @READEX_CONFIGURATION_REVISION@
+
+READEX Interphase:
+Version:                  @READEX_INTERPHASE_VERSION@
+Revision:                 @READEX_INTERPHASE_REVISION@
+
+READEX Intraphase:
+Version:                  @READEX_INTRAPHASE_VERSION@
+Revision:                 @READEX_INTRAPHASE_REVISION@
+
+READEX Intraphase Model:
+Version:                  @READEX_INTRAPHASE_MODEL_VERSION@
+Revision:                 @READEX_INTRAPHASE_MODEL_REVISION@
+
+ROMIO:
+Version:                  @ROMIO_VERSION@
+Revision:                 @ROMIO_REVISION@

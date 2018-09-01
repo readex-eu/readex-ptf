@@ -41,9 +41,9 @@ include hagent/Makefile.am
 include test/Makefile.am
 include docs/Makefile.am
 
-if PSC_CUBE_ENABLED
+
 include readex/Makefile.am
-endif
+
 
 include starterplugin/Makefile.am
 if PSC_SCOREP_ENABLED

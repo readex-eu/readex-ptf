@@ -17,7 +17,6 @@
 #include <boost/utility.hpp>
 #include <list>
 #include <map>
-#include <string>
 #include <numeric>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/foreach.hpp>
@@ -33,6 +32,7 @@
 #include "../../common_incl/Predicates.h"
 #include "../../common_incl/enums.h"
 
+#include "config.h"
 
 #define YorN( x ) ( x ? "yes" : "no" )
 
@@ -306,9 +306,8 @@ main( int argc, char* argv[] )
                                      //std::cout << "file exists\n";
                                   } else {
                                      //std::cout << "file does not exist\n";
-                                     char* periscopeRoot = getenv("PERISCOPE_ROOT");
                                      std::stringstream cmd;
-                                     cmd << "cp " << periscopeRoot << "/templates/readex_config.xml.default " << config_file_name << std::endl;
+                                     cmd << "cp " << PERISCOPE_INSTALL_DIRECTORY << "/templates/readex_config.xml.default " << config_file_name << std::endl;
                                      system(cmd.str().c_str());
                                      cout<< "Config file did not exist. Copied template with " << cmd.str() << std::endl;
                                   }
@@ -419,11 +418,17 @@ traverseTree( Cnode*                  call_node,
     }
     else
     {
+    	// check for MPI/OMP parallel events of all the children of the current node's parent
+    	Cnode* p_node = call_node->get_parent();
+    	bool has_p_event = false;
+    	//cerr << "Callr node " << call_node->get_callee()->get_name() << '\n';
+        checkParallelEvents (p_node, call_node, &has_p_event);
+        if (has_p_event)
+    	    return;
         Region* p      = call_node->get_callee();
         string  region = p->get_name();
-
         double gran = computeGranularity( call_node, in_cube );
-        cerr << "Granularity of " << call_node->get_callee()->get_name() << ": " << gran << "\n";
+        cerr << "Granularity of " << call_node->get_callee()->get_name() << ": " << gran << '\n';
         if ( gran < gran_threshold ) return;
 
         if ( !region.empty() && !checkExistingName( region, sig_region_names ) ) {
@@ -448,6 +453,29 @@ traverseTree( Cnode*                  call_node,
         return;
 }
 
+void
+checkParallelEvents (Cnode* curr_node, Cnode* call_node, bool* has_p_event)
+{
+	if( curr_node == NULL )
+            curr_node = call_node;
+	// check either it's a OMP/MPI node or it is under OMP/MPI region
+	if ( curr_node != NULL && !(curr_node == call_node) && strcmp( curr_node->get_callee()->get_name().c_str(), call_node->get_callee()->get_name().c_str() ) == 0
+			&& ( isUserNode( curr_node ) || !isUserNode( curr_node->get_parent() ) )
+	   )
+	{
+		*has_p_event = true;
+		cout << "  NAME: " << curr_node->get_callee()->get_name() << endl;
+	}
+        size_t no_child = curr_node->num_children();
+	for( size_t cn_i = 0; cn_i < no_child; cn_i++ )
+	{
+		Cnode* cnode = curr_node->get_child( cn_i );
+		checkParallelEvents( cnode, call_node, has_p_event);
+	}
+
+}
+
+
 
 /**
  * @brief Generate Adjacency matric of call node tree
@@ -467,7 +495,7 @@ generateAdjacencyMatrix( size_t                 matrix_size,
     vector<Cnode*>& p_subtree_nodes = phase_node->get_whole_subtree();
     for ( const auto& name : sig_regions )
     {
-        if ( strcasecmp( name.second.c_str(), phase_node->get_callee()->get_name().c_str() ) == 0 )
+        if ( strcmp( name.second.c_str(), phase_node->get_callee()->get_name().c_str() ) == 0 )
             updateMatrix( phase_node, adj_matrix, sig_regions );
         else
         {

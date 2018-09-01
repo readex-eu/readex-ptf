@@ -16,9 +16,10 @@ libptfreadex_configuration_la_SOURCES  = autotune/plugins/readex_configuration/s
 
 templates_DATA += autotune/plugins/readex_configuration/src/appConfigParams.cfg
 
+libptfreadex_configuration_la_LDFLAGS  = ${autotune_plugin_base_ldflags} -version-info 1:0:0 \
+                                         -release ${READEX_CONFIGURATION_VERSION_MAJOR}.${READEX_CONFIGURATION_VERSION_MINOR}.${READEX_CONFIGURATION_REVISION}
+
 libptfreadex_configuration_la_scriptsdir = ${readex_configurationdir}
 
 libptfreadex_configuration_la_scripts_SCRIPTS = autotune/plugins/readex_configuration/src/set_configuration_parameter.sh
 
-libptfreadex_configuration_la_LDFLAGS  = ${autotune_plugin_base_ldflags} -version-info 1:0:0 \
-                                         -release ${APPCONFIGURATION_VERSION_MAJOR}.${APPCONFIGURATION_VERSION_MINOR}.${APPCONFIGURATION_REVISION}

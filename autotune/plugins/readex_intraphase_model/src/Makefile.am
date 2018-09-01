@@ -15,5 +15,7 @@ libptfreadex_intraphase_model_la_CXXFLAGS = ${autotune_plugin_base_cxxflags} \
 
 
 libptfreadex_intraphase_model_la_SOURCES  = autotune/plugins/readex_intraphase_model/src/readex_intraphase_model.cc \
-                                  util/src/ATPService.cc
-libptfreadex_intraphase_model_la_LDFLAGS  = ${autotune_plugin_base_ldflags} -version-info 1:0:0
+                                            util/src/ATPService.cc
+
+libptfreadex_intraphase_model_la_LDFLAGS  = ${autotune_plugin_base_ldflags} -version-info 1:0:0 \
+                                            -release ${READEX_INTRAPHASE_MODEL_VERSION_MAJOR}.${READEX_INTRAPHASE_MODEL_VERSION_MINOR}.${READEX_INTRAPHASE_MODEL_REVISION}

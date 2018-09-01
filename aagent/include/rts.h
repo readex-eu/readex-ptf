@@ -209,15 +209,15 @@ public:
         return this->children;
     }
 
-    const int getParentScorepID() const {
+    int getParentScorepID() const {
         return parent_scorep_id;
     }
 
-    const int getScorepID() const {
+    int getScorepID() const {
         return scorep_id;
     }
 
-    const RtsNodeType getRtsType() const {
+    RtsNodeType getRtsType() const {
         return rts_type;
     }
 
@@ -233,7 +233,7 @@ public:
         return tuning_plugin_result;
     }
 
-    std::string & getCallPath() {
+    std::string& getCallPath() {
         return callpathstring;
     }
 
@@ -241,7 +241,7 @@ public:
         return parent;
     }
 
-    const int getRtsID() const {
+    int getRtsID() const {
         return aa_rts_id;
     }
 

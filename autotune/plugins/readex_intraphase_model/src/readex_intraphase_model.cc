@@ -693,7 +693,6 @@ void ReadexIntraphaseModelPlugin::defineExperiment(int numprocs, bool& analysisR
     psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "ReadexIntraphasePlugin: Processing significant regions\n");
     code_significant_regions = appl->get_sig_regions_list();
     std::list<Region*>::iterator code_sig_regions_it;
-    printf("code_significant_regions.size(): %d\n",code_significant_regions.size());fflush(stdout);
 
     if (code_significant_regions.size() > 0) {
         StrategyRequestGeneralInfo* analysisStrategyRequest = new StrategyRequestGeneralInfo;
@@ -1221,7 +1220,7 @@ bool ReadexIntraphaseModelPlugin::tuningFinished(void) {
                 }
             }
 
-            cout << "rts.xml file creating .." << endl;
+            psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "ReadexIntraphasePlugin: Creating rts.xml");
             rtsTree.add_child( "RTS" , rts_s );
             #if BOOST_VERSION >=105600
                     write_xml( "rts.xml", rtsTree, locale(), xml_writer_settings<ptree::key_type>( ' ', 4 ) );
@@ -1447,7 +1446,7 @@ IPlugin* getPluginInstance(void) {
 int getVersionMajor(void) {
     psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "ReadexIntraphasePlugin: call to getInterfaceVersionMajor()\n");
 
-    return 1;
+    return READEX_INTRAPHASE_MODEL_VERSION_MAJOR;
 }
 
 /**
@@ -1461,7 +1460,7 @@ int getVersionMajor(void) {
 int getVersionMinor(void) {
     psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL(AutotunePlugins), "ReadexIntraphasePlugin: call to getInterfaceVersionMinor()\n");
 
-    return 0;
+    return READEX_INTRAPHASE_MODEL_VERSION_MINOR;
 }
 
 /**

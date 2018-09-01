@@ -31,9 +31,6 @@
 #include "RandomSearch.h"
 #include "GDE3Search.h"
 
-#define APPCONFIGURATION_VERSION_MAJOR 1
-#define APPCONFIGURATION_VERSION_MINOR 0
-
 
 void
 parse_opts( int   argc,
@@ -409,9 +406,8 @@ void readexConfigurationTuningPlugin::prepareScenarios( void ) {
         int i = value.second;
         if( AppConfigParameter* tp = dynamic_cast< AppConfigParameter* >( value.first ) ) {
             doneTP[ tp->getId() ] = true;
-
             stringstream cmd;
-            cmd << "set_configuration_parameter.sh " << tp->getfilePath() << " " << tp->getName() << " " << *(tp->getValueString(i));
+            cmd << PERISCOPE_PLUGINS_DIRECTORY << "/readex_configuration/set_configuration_parameter.sh " << tp->getfilePath() << " \"" << tp->getName() << "\" \"" << *(tp->getValueString(i)) << "\"";
             string cmdString = cmd.str();
             psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), "readexConfigurationTuningPlugin: command for setting ACP: %s\n", cmdString.c_str() );
             retVal = system( cmdString.c_str() );
@@ -430,7 +426,7 @@ void readexConfigurationTuningPlugin::prepareScenarios( void ) {
             AppConfigParameter* tp = dynamic_cast< AppConfigParameter* >( tuningParameters[ i ] );
 
             stringstream cmd;
-            cmd << "set_configuration_parameter.sh " << tp->getfilePath() << " " << tp->getName() << " " << *(tp->getValueString(1));
+            cmd << PERISCOPE_PLUGINS_DIRECTORY << "/readex_configuration/set_configuration_parameter.sh " << tp->getfilePath() << " \"" << tp->getName() << "\" \"" << *(tp->getValueString(1)) << "\"";
             string cmdString = cmd.str();
             psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), "readexConfigurationTuningPlugin: command for setting ACP: %s\n", cmdString.c_str() );
             retVal = system( cmdString.c_str() );
@@ -600,7 +596,7 @@ Advice* readexConfigurationTuningPlugin::getAdvice( void ) {
             result_oss << "\t" << tp->getName() << ": " << *v << "\n";
 
             stringstream cmd;
-            cmd << "set_configuration_parameter.sh " << tp->getfilePath() << " " << tp->getName() << " " << *v;
+            cmd << PERISCOPE_PLUGINS_DIRECTORY << "/readex_configuration/set_configuration_parameter.sh " << tp->getfilePath() << " \"" << tp->getName() << "\" \"" << *v << "\"";
             string cmdString = cmd.str();
             psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), "readexConfigurationTuningPlugin: command for setting ACP: %s\n", cmdString.c_str() );
             const int retVal = system( cmdString.c_str() );
@@ -619,10 +615,10 @@ Advice* readexConfigurationTuningPlugin::getAdvice( void ) {
             const std::string*  v  = tuningParameters[ i ]->getValueString( i );
             AppConfigParameter* tp = dynamic_cast< AppConfigParameter* >( tuningParameters[ i ] );
 
-            result_oss << "\t" << tp->getName() << ": " << v << "\n";
+            result_oss << "\t" << tp->getName() << ": " << *v << "\n";
 
             stringstream cmd;
-            cmd << "set_configuration_parameter.sh " << tp->getfilePath() << " " << tp->getName() << " " << tp->getValueString( 1 );
+            cmd << PERISCOPE_PLUGINS_DIRECTORY << "/readex_configuration/set_configuration_parameter.sh " << tp->getfilePath() << " \"" << tp->getName() << "\" \"" << *(tp->getValueString(1)) << "\"";
             string cmdString = cmd.str();
             psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), "readexConfigurationTuningPlugin: command for setting ACP: %s\n", cmdString.c_str() );
             int retVal = system( cmdString.c_str() );
@@ -638,6 +634,12 @@ Advice* readexConfigurationTuningPlugin::getAdvice( void ) {
     result_oss << "\n------------------------" << endl << endl;
     cout << result_oss.str();
 
+    std::ofstream ofs;
+    ofs.open (results_file, std::ofstream::out);
+
+    ofs << result_oss.str();
+
+    ofs.close();
 }
 
 /**
@@ -705,7 +707,7 @@ IPlugin* getPluginInstance( void ) {
 int getVersionMajor( void ) {
     psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), "readexConfigurationTuningPlugin: call to getInterfaceVersionMajor()\n" );
 
-    return APPCONFIGURATION_VERSION_MAJOR;
+    return READEX_CONFIGURATION_VERSION_MAJOR;
 }
 
 /**
@@ -719,7 +721,7 @@ int getVersionMajor( void ) {
 int getVersionMinor( void ) {
     psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotunePlugins ), "readexConfigurationTuningPlugin: call to getInterfaceVersionMinor()\n" );
 
-    return APPCONFIGURATION_VERSION_MINOR;
+    return READEX_CONFIGURATION_VERSION_MINOR;
 }
 
 /**

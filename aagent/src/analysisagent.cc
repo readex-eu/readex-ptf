@@ -593,7 +593,7 @@ void AnalysisAgent::set_strategy( StrategyRequest* strategyRequest ) {
         }
         else
         {
-            psc_dbgmsg( 1, "Analysis Agent: Setting strategy as TuningStrategy in set_strategy(). \n" );
+            psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotuneAgentStrategy ), "Analysis Agent: Setting strategy as TuningStrategy in set_strategy(). \n" );
 
             if( scenarioList->front()->isRtsBased()  )
             {
@@ -604,14 +604,14 @@ void AnalysisAgent::set_strategy( StrategyRequest* strategyRequest ) {
 
                 strategy = new TuningStrategy( scenarioList, strategyRequest->getSubStrategyRequest(),
                                                true, pedantic );
-                psc_dbgmsg( 1, "Analysis Agent: rts based TuningStrategy is created. \n" );
+                psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotuneAgentStrategy ), "Analysis Agent: rts based TuningStrategy is created. \n" );
             }
 
             else
             {
                 strategy = new TuningStrategy( scenarioList, strategyRequest->getSubStrategyRequest(),
                                                false, pedantic );
-                psc_dbgmsg( 1, "Analysis Agent: Region based TuningStrategy is created. \n" );
+                psc_dbgmsg(PSC_SELECTIVE_DEBUG_LEVEL( AutotuneAgentStrategy ), "Analysis Agent: Region based TuningStrategy is created. \n" );
 
             }
 
@@ -638,7 +638,7 @@ void AnalysisAgent::set_strategy( StrategyRequest* strategyRequest ) {
         abort();
     }
 
-    psc_dbgmsg( 1, "Analyzing application with strategy %s (pedantic: %s)\n", strategy->name().c_str(), pedantic ? "yes" : "no" );
+    psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL(StrategyRequests), "Analyzing application with strategy %s (pedantic: %s)\n", strategy->name().c_str(), pedantic ? "yes" : "no" );
     agent->set_strategy( strategy );
 
 

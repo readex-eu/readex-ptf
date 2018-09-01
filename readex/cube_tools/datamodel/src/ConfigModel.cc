@@ -157,11 +157,18 @@ ConfigModel::createTemplate()
     CostPerCoreHour.put( "", 1.0 );
     XMLConfigTree.add_child( "Configuration.CostPerCoreHour", CostPerCoreHour );
 
+    //Add Metric Plugin
+    ptree metric_plugin;
+    metric_plugin.put( "name", "hdeem_sync_plugin" );
+    metric_plugin.put( "name", "x86_energy_sync_plugin" );
+    XMLConfigTree.add_child( "Configuration.periscope.metricPlugin", metric_plugin );
+
     //Add Metrics
     ptree metric_energy;
     metric_energy.put( "node_energy", "hdeem/BLADE/E" );
     metric_energy.put( "cpu0_energy", "hdeem/CPU0/E" );
     metric_energy.put( "cpu1_energy", "hdeem/CPU1/E" );
+    metric_energy.put( "node_energy", "x86_energy/BLADE/E" );
     XMLConfigTree.add_child( "Configuration.periscope.metrics", metric_energy );
 
     //Add searchAlogirthm

@@ -176,7 +176,7 @@ int parse_opts( int                  argc,
                 copts->has_plugin = 1;
                 strcpy( copts->plugin, optarg );
                 std::list<std::string> plugin_name = { "readex_intraphase", "readex_interphase", "readex_intraphase_model", "readex_configuration" };
-                // checks if readex_tuning or interphase_tuning is requested and if so enables RTS support.
+                // checks if a READEX tuning plugin is requested and if so enables RTS support.
                 rts_support = std::find( plugin_name.begin(), plugin_name.end(), copts->plugin ) != plugin_name.end();
 
                 copts->has_strategy = 1;
@@ -218,7 +218,7 @@ int parse_opts( int                  argc,
             break;
 
         case 'o':
-            psc_dbgmsg( PSC_SELECTIVE_DEBUG_LEVEL( AutotuneAll ), "State Machine Tracing enabled...\n" );
+            psc_dbgmsg( 6, "State Machine Tracing enabled...\n" );
             copts->sm_tracing_enabled = 1;
             PSC_SM_TRACE_SINGLETON->enable();
             break;
@@ -356,7 +356,7 @@ int parse_opts( int                  argc,
                 copts->has_configurationfile = 1;
                 strcpy( copts->configfile_string, optarg );
                 try {
-                    read_xml( opts.configfile_string, configTree );
+                    read_xml( opts.configfile_string, configTree, boost::property_tree::xml_parser::no_comments );
                     psc_dbgmsg( 1, "Using configuration xml file \"%s\" \n", opts.configfile_string );
 //                    double variation = atof(configTree.get < std::string > ("Configuration.readex-dyn-detect.Inter-phase.variation").c_str());
 //                    if (variation > 0) {
@@ -475,6 +475,13 @@ int parse_opts( int                  argc,
         return -1;
     }
 
+    /*Check that either --tune or --strategy is present */
+    if( ! (copts->has_strategy || copts->has_plugin ) ) {
+        psc_errmsg( "Please specify either --strategy=<name> (e.g. EnergyGranularityBF, Importance, OMP, PerfDyn-OMP, PerfDyn-MPI, PerfDyn-Time, MPI)\n"
+                "or --tune=<name> (e.g. readex_intraphase, readex_interphase, readex_configuration, compilerflags, dvfs, mpicap, mpiparameters, pcap)\n" );
+        return -1;
+    }
+
     return 0;
 }
 
@@ -557,11 +564,14 @@ int main( int   argc,
     fmsm.process_event( init_data_structures_event() );
     fmsm.process_event( parse_parameters_event( argc, argv, fe ) );
     fmsm.process_event( setup_debug_event() );
-    psc_dbgmsg (2, "psc_frontend started on node: \n"); system("hostname");
+    if( psc_get_debug_level() >= 6 ) {
+      psc_dbgmsg (2, "psc_frontend started on node: \n");
+      system("hostname");
+    }
 
     // version defined by configure script in config.h
     fprintf( stdout, "Periscope Performance Analysis Tool (ver. %s)\n", VERSION );
-    psc_infomsg( "Preparing to start the performance analysis...\n" );
+    psc_infomsg( "Preparing to start the performance tuning...\n" );
 
     // assert that initialization is not done yet
     psc_dbgmsg( FRONTEND_MSM_DEBUG_LEVEL,

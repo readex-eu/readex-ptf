@@ -187,7 +187,7 @@ void LoadSearch::createScenarios() {
         list<TuningSpecification*>*          ts1 = new list<TuningSpecification*> ();
         list<TuningSpecification*>::iterator TS_iterator;
 
-        printf( "ts.size() = %d\n", ts->size() );
+        printf( "ts.size() = %lu\n", ts->size() );
         for( TS_iterator = ts->begin(); TS_iterator != ts->end(); TS_iterator++ ) {
             TuningSpecification* tuningSpec = ( *TS_iterator );
             VariantContext       context    = tuningSpec->getVariantContext();
