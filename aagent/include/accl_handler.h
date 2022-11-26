@@ -805,7 +805,7 @@ int operator>>( ACE_InputCDR&                 cdr,
 int operator<<( ACE_OutputCDR&     cdr,
                 const std::string& str );
 
-int operator>>( ACE_OutputCDR& cdr,
+int operator>>( ACE_InputCDR& cdr,
                 std::string&   str );
 
 #endif //  ACCL_HANDLER_H_INCLUDED
